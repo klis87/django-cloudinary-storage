@@ -66,3 +66,9 @@ class MediaCloudinaryStorage(Storage):
             return False
         response.raise_for_status()
         return True
+
+    def get_available_name(self, name, max_length=None):
+        if max_length is None:
+            return name
+        else:
+            return name[:max_length]

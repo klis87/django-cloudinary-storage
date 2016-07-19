@@ -78,6 +78,21 @@ class CloudinaryMediaStorageTests(SimpleTestCase):
         with self.assertRaises(IOError):
             self.storage.open('name')
 
+    def test_get_available_name(self):
+        name = 'name'
+        available_name = self.storage.get_available_name(name)
+        self.assertEqual(name, available_name)
+
+    def test_get_available_name_with_max_length(self):
+        name = 'name'
+        available_name = self.storage.get_available_name(name, 2)
+        self.assertEqual('na', available_name)
+
+    def test_get_available_name_with_max_length_bigger_than_name_length(self):
+        name = 'name'
+        available_name = self.storage.get_available_name(name, 10)
+        self.assertEqual(name, available_name)
+
     @classmethod
     def tearDownClass(cls):
         cls.storage.delete(cls.file_name)
