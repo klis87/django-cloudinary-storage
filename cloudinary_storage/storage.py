@@ -24,6 +24,17 @@ class MediaCloudinaryStorage(Storage):
         if resource_type is not None:
             self.RESOURCE_TYPE = resource_type
 
+    def _open(self, name, mode='rb'):
+        url = self._get_url(name)
+        response = requests.get(url)
+        if response.status_code == 404:
+            raise IOError
+        response.raise_for_status()
+        file = ContentFile(response.content)
+        file.name = name
+        file.mode = mode
+        return file
+
     def _upload(self, name, content):
         options = {'use_filename': True, 'resource_type': self.RESOURCE_TYPE, 'tags': self.TAG}
         folder = os.path.dirname(name)
