@@ -92,3 +92,7 @@ class MediaCloudinaryStorage(Storage):
             else:
                 files.append(resource_tail)
         return list(directories), files
+
+
+class RawMediaCloudinaryStorage(MediaCloudinaryStorage):
+    RESOURCE_TYPE = 'raw'

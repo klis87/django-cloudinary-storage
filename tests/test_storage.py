@@ -1,16 +1,11 @@
-from uuid import uuid4
 from unittest import mock
 
 from requests.exceptions import HTTPError
-
 from django.test import SimpleTestCase
 from django.core.files.base import ContentFile
 
 from cloudinary_storage.storage import MediaCloudinaryStorage
-
-
-def get_random_name():
-    return str(uuid4())
+from tests.test_helpers import get_random_name
 
 TAG = get_random_name()
 

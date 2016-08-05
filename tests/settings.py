@@ -5,3 +5,7 @@ CLOUDINARY_STORAGE = {
     'API_KEY': 'my-api-key',
     'API_SECRET': 'my-api-secret'
 }
+
+INSTALLED_APPS = [
+    'tests'
+]
