@@ -10,6 +10,7 @@ from django.core.files.uploadedfile import UploadedFile
 from django.core.files.storage import Storage
 from django.utils.deconstruct import deconstructible
 
+from . import  app_settings
 from .helpers import get_resources_by_path
 
 
