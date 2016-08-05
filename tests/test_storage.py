@@ -19,13 +19,13 @@ class CloudinaryMediaStorageTests(SimpleTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        cls.file_content = b'Content of file'
         cls.storage = MediaCloudinaryStorage(tag=TAG, resource_type='raw')
         cls.file_name, cls.file = cls.upload_file()
 
     @classmethod
-    def upload_file(cls):
-        file_name = get_random_name()
-        cls.file_content = b'Content of file'
+    def upload_file(cls, prefix=''):
+        file_name = prefix + get_random_name()
         content = ContentFile(cls.file_content)
         file_name = cls.storage.save(file_name, content)
         return file_name, content
@@ -92,6 +92,20 @@ class CloudinaryMediaStorageTests(SimpleTestCase):
         name = 'name'
         available_name = self.storage.get_available_name(name, 10)
         self.assertEqual(name, available_name)
+
+    def test_list_dir(self):
+        file_2_name, file_2 = self.upload_file(prefix='folder/')
+        file_3_name, file_3 = self.upload_file(prefix='folder/subfolder/')
+        try:
+            self.assertEqual(self.storage.listdir(''), (['folder'], [self.file_name]))
+            file_2_tail = file_2_name.replace('folder/', '', 1)
+            self.assertEqual(self.storage.listdir('folder'),
+                             (['subfolder'], [file_2_tail]))
+            file_3_tail = file_3_name.replace('folder/subfolder/', '', 1)
+            self.assertEqual(self.storage.listdir('folder/subfolder'), ([], [file_3_tail]))
+        finally:
+            self.storage.delete(file_2_name)
+            self.storage.delete(file_3_name)
 
     @classmethod
     def tearDownClass(cls):

@@ -10,7 +10,7 @@ from django.core.files.uploadedfile import UploadedFile
 from django.core.files.storage import Storage
 from django.utils.deconstruct import deconstructible
 
-from . import app_settings
+from .helpers import get_resources_by_path
 
 
 @deconstructible
@@ -72,3 +72,22 @@ class MediaCloudinaryStorage(Storage):
             return name
         else:
             return name[:max_length]
+
+    def _normalize_path(self, path):
+        if path != '' and not path.endswith('/'):
+            path += '/'
+        return path
+
+    def listdir(self, path):
+        path = self._normalize_path(path)
+        resources = get_resources_by_path(self.RESOURCE_TYPE, self.TAG, path)
+        directories = set()
+        files = []
+        for resource in resources:
+            resource_tail = resource.replace(path, '', 1)
+            if '/' in resource_tail:
+                directory = resource_tail.split('/', 1)[0]
+                directories.add(directory)
+            else:
+                files.append(resource_tail)
+        return list(directories), files
