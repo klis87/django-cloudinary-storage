@@ -19,3 +19,5 @@ cloudinary.config(
     api_secret=user_settings.get('API_SECRET'),
     secure=user_settings.get('SECURE', True)
 )
+
+MEDIA_TAG = user_settings.get('MEDIA_TAG', 'media')

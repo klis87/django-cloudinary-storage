@@ -17,7 +17,7 @@ from .helpers import get_resources_by_path
 @deconstructible
 class MediaCloudinaryStorage(Storage):
     RESOURCE_TYPE = 'image'
-    TAG = 'media'
+    TAG = app_settings.MEDIA_TAG
 
     def __init__(self, tag=None, resource_type=None):
         if tag is not None:
