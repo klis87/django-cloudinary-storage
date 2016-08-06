@@ -1,3 +1,4 @@
 Django==1.9.7
+Pillow==3.3.0
 cloudinary==1.4.0
 requests==2.10.0
