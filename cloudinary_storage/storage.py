@@ -10,13 +10,18 @@ from django.core.files.uploadedfile import UploadedFile
 from django.core.files.storage import Storage
 from django.utils.deconstruct import deconstructible
 
-from . import  app_settings
+from . import app_settings
 from .helpers import get_resources_by_path
+
+RESOURCE_TYPES = {
+    'IMAGE': 'image',
+    'RAW': 'raw'
+}
 
 
 @deconstructible
 class MediaCloudinaryStorage(Storage):
-    RESOURCE_TYPE = 'image'
+    RESOURCE_TYPE = RESOURCE_TYPES['IMAGE']
     TAG = app_settings.MEDIA_TAG
 
     def __init__(self, tag=None, resource_type=None):
@@ -95,4 +100,10 @@ class MediaCloudinaryStorage(Storage):
 
 
 class RawMediaCloudinaryStorage(MediaCloudinaryStorage):
-    RESOURCE_TYPE = 'raw'
+    RESOURCE_TYPE = RESOURCE_TYPES['RAW']
+
+
+storages_per_type = {
+    RESOURCE_TYPES['IMAGE']: MediaCloudinaryStorage(),
+    RESOURCE_TYPES['RAW']: RawMediaCloudinaryStorage(),
+}

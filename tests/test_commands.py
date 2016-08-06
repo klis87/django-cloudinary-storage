@@ -15,18 +15,21 @@ class DeleteOrphanedMediaCommandTests(TestCase):
         TestModelWithoutFile.objects.create(name='without file')
         TestModel.objects.create(name='without file')
         TestImageModel.objects.create(name='without image')
-        cls.file_name = cls.create_model_with_file(TestModel).file.name
-        cls.file_name_2 = cls.create_model_with_file(TestModel).file.name
-        image_model_instance = cls.create_model_with_file(TestImageModel)
-        cls.file_name_3 = image_model_instance.file.name
+        cls.file = cls.add_file_to_model(TestModel(name='with file')).file.name
+        cls.file_2 = cls.add_file_to_model(TestModel(name='with file')).file.name
+        image_model_instance = cls.add_file_to_model(TestImageModel(name='with file and image'))
+        cls.file_removed = image_model_instance.file.name
+        cls.add_file_to_model(image_model_instance)
+        cls.file_removed_2 = image_model_instance.file.name
+        cls.add_file_to_model(image_model_instance)
+        cls.file_3 = image_model_instance.file.name
         image = ImageFile(open('tests/dummy-image.jpg', 'rb'))
         image_model_instance.image.save(get_random_name(), image)
-        cls.file_name_4 = image_model_instance.image.name
+        cls.file_4 = image_model_instance.image.name
 
     @classmethod
-    def create_model_with_file(cls, Model):
+    def add_file_to_model(cls, model_instance):
         content = ContentFile(b'Content of file')
-        model_instance = Model(name='with file')
         model_instance.file.save(get_random_name(), content)
         return model_instance
 
@@ -37,14 +40,21 @@ class DeleteOrphanedMediaCommandTests(TestCase):
     def test_get_uploaded_media(self):
         command = DeleteOrphanedMediaCommand()
         self.assertEqual(command.get_uploaded_media(),
-                         {self.file_name, self.file_name_2, self.file_name_3, self.file_name_4})
+                         {self.file, self.file_2, self.file_3, self.file_4})
+
+    def test_files_to_remove(self):
+        command = DeleteOrphanedMediaCommand()
+        self.assertEqual(command.get_files_to_remove(),
+                         {'raw': {self.file_removed, self.file_removed_2}, 'image': set()})
 
     @classmethod
     def tearDownClass(cls):
         super().tearDownClass()
         raw_storage = RawMediaCloudinaryStorage()
-        raw_storage.delete(cls.file_name)
-        raw_storage.delete(cls.file_name_2)
-        raw_storage.delete(cls.file_name_3)
+        raw_storage.delete(cls.file)
+        raw_storage.delete(cls.file_2)
+        raw_storage.delete(cls.file_3)
+        raw_storage.delete(cls.file_removed)
+        raw_storage.delete(cls.file_removed_2)
         image_storage = MediaCloudinaryStorage()
-        image_storage.delete(cls.file_name_4)
+        image_storage.delete(cls.file_4)

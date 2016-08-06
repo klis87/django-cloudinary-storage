@@ -4,7 +4,9 @@ from django.core.management.base import BaseCommand
 from django.apps import apps
 from django.db import models
 
+from cloudinary_storage.helpers import get_resources
 from cloudinary_storage import app_settings
+from cloudinary_storage.storage import storages_per_type
 
 
 class Command(BaseCommand):
@@ -37,3 +39,11 @@ class Command(BaseCommand):
                 model_uploaded_media = model.objects.exclude(**exclude_options).values_list(*media_fields)
                 uploaded_media.extend(model_uploaded_media)
         return set(chain.from_iterable(uploaded_media))
+
+    def get_files_to_remove(self):
+        files_to_remove = {}
+        uploaded_media = self.get_uploaded_media()
+        for resources_type in self.get_resource_types():
+            resources = set(get_resources(resources_type, app_settings.MEDIA_TAG))
+            files_to_remove[resources_type] = resources - uploaded_media
+        return files_to_remove
