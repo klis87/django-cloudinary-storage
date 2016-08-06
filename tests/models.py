@@ -10,7 +10,8 @@ class TestModel(models.Model):
 
 class TestImageModel(models.Model):
     name = models.CharField(max_length=100)
-    file = models.ImageField(upload_to='tests-images/', blank=True, storage=MediaCloudinaryStorage())
+    file = models.FileField(upload_to='tests/', blank=True, storage=RawMediaCloudinaryStorage())
+    image = models.ImageField(upload_to='tests-images/', blank=True, storage=MediaCloudinaryStorage())
 
 class TestModelWithoutFile(models.Model):
     name = models.CharField(max_length=100)

@@ -15,17 +15,20 @@ class DeleteOrphanedMediaCommandTests(TestCase):
         TestModelWithoutFile.objects.create(name='without file')
         TestModel.objects.create(name='without file')
         TestImageModel.objects.create(name='without image')
-        content = ContentFile(b'Content of file')
-        file_model = TestModel(name='with file')
-        file_model.file.save(get_random_name(), content)
-        cls.file_name = file_model.file.name
-        file_model = TestModel(name='with file')
-        file_model.file.save(get_random_name(), content)
-        cls.file_name_2 = file_model.file.name
+        cls.file_name = cls.create_model_with_file(TestModel).file.name
+        cls.file_name_2 = cls.create_model_with_file(TestModel).file.name
+        image_model_instance = cls.create_model_with_file(TestImageModel)
+        cls.file_name_3 = image_model_instance.file.name
         image = ImageFile(open('tests/dummy-image.jpg', 'rb'))
-        image_model = TestImageModel(name='with image')
-        image_model.file.save(get_random_name(), image)
-        cls.file_name_3 = image_model.file.name
+        image_model_instance.image.save(get_random_name(), image)
+        cls.file_name_4 = image_model_instance.image.name
+
+    @classmethod
+    def create_model_with_file(cls, Model):
+        content = ContentFile(b'Content of file')
+        model_instance = Model(name='with file')
+        model_instance.file.save(get_random_name(), content)
+        return model_instance
 
     def test_get_resource_types(self):
         command = DeleteOrphanedMediaCommand()
@@ -33,7 +36,8 @@ class DeleteOrphanedMediaCommandTests(TestCase):
 
     def test_get_uploaded_media(self):
         command = DeleteOrphanedMediaCommand()
-        self.assertEqual(command.get_uploaded_media(), {self.file_name, self.file_name_2, self.file_name_3})
+        self.assertEqual(command.get_uploaded_media(),
+                         {self.file_name, self.file_name_2, self.file_name_3, self.file_name_4})
 
     @classmethod
     def tearDownClass(cls):
@@ -41,5 +45,6 @@ class DeleteOrphanedMediaCommandTests(TestCase):
         raw_storage = RawMediaCloudinaryStorage()
         raw_storage.delete(cls.file_name)
         raw_storage.delete(cls.file_name_2)
+        raw_storage.delete(cls.file_name_3)
         image_storage = MediaCloudinaryStorage()
-        image_storage.delete(cls.file_name_3)
+        image_storage.delete(cls.file_name_4)
