@@ -3,7 +3,7 @@ from django.core.files.base import ContentFile
 from django.core.files.images import ImageFile
 
 from cloudinary_storage.management.commands.deleteorphanedmedia import Command as DeleteOrphanedMediaCommand
-from cloudinary_storage.storage import MediaCloudinaryStorage, RawMediaCloudinaryStorage
+from cloudinary_storage.storage import MediaCloudinaryStorage, RawMediaCloudinaryStorage, RESOURCE_TYPES
 from tests.models import TestModel, TestImageModel, TestModelWithoutFile
 from tests.test_helpers import get_random_name
 
@@ -35,7 +35,8 @@ class DeleteOrphanedMediaCommandTests(TestCase):
 
     def test_get_resource_types(self):
         command = DeleteOrphanedMediaCommand()
-        self.assertEqual({'raw', 'image'}, command.get_resource_types())
+        expected = {RESOURCE_TYPES['RAW'], RESOURCE_TYPES['IMAGE'], RESOURCE_TYPES['VIDEO']}
+        self.assertEqual(expected, command.get_resource_types())
 
     def test_get_uploaded_media(self):
         command = DeleteOrphanedMediaCommand()
@@ -44,8 +45,12 @@ class DeleteOrphanedMediaCommandTests(TestCase):
 
     def test_files_to_remove(self):
         command = DeleteOrphanedMediaCommand()
-        self.assertEqual(command.get_files_to_remove(),
-                         {'raw': {self.file_removed, self.file_removed_2}, 'image': set()})
+        expected = {
+            RESOURCE_TYPES['RAW']: {self.file_removed, self.file_removed_2},
+            RESOURCE_TYPES['IMAGE']: set(),
+            RESOURCE_TYPES['VIDEO']: set()
+        }
+        self.assertEqual(command.get_files_to_remove(), expected)
 
     @classmethod
     def tearDownClass(cls):

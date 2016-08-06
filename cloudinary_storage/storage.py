@@ -15,7 +15,8 @@ from .helpers import get_resources_by_path
 
 RESOURCE_TYPES = {
     'IMAGE': 'image',
-    'RAW': 'raw'
+    'RAW': 'raw',
+    'VIDEO': 'video'
 }
 
 
@@ -103,7 +104,12 @@ class RawMediaCloudinaryStorage(MediaCloudinaryStorage):
     RESOURCE_TYPE = RESOURCE_TYPES['RAW']
 
 
+class VideoMediaCloudinaryStorage(MediaCloudinaryStorage):
+    RESOURCE_TYPE = RESOURCE_TYPES['VIDEO']
+
+
 storages_per_type = {
     RESOURCE_TYPES['IMAGE']: MediaCloudinaryStorage(),
     RESOURCE_TYPES['RAW']: RawMediaCloudinaryStorage(),
+    RESOURCE_TYPES['VIDEO']: VideoMediaCloudinaryStorage(),
 }

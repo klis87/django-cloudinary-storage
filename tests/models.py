@@ -1,6 +1,6 @@
 from django.db import models
 
-from cloudinary_storage.storage import MediaCloudinaryStorage, RawMediaCloudinaryStorage
+from cloudinary_storage.storage import MediaCloudinaryStorage, RawMediaCloudinaryStorage, VideoMediaCloudinaryStorage
 
 
 class TestModel(models.Model):
@@ -16,3 +16,8 @@ class TestImageModel(models.Model):
 
 class TestModelWithoutFile(models.Model):
     name = models.CharField(max_length=100)
+
+
+class TestVideoModel(models.Model):
+    name = models.CharField(max_length=100)
+    video = models.FileField(upload_to='tests-videos/', blank=True, storage=VideoMediaCloudinaryStorage())
