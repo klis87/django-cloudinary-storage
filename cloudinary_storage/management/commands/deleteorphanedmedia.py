@@ -5,8 +5,8 @@ from django.apps import apps
 from django.db import models
 
 from cloudinary_storage.helpers import get_resources
-from cloudinary_storage import app_settings
 from cloudinary_storage.storage import storages_per_type
+from cloudinary_storage import app_settings
 
 
 class Command(BaseCommand):

@@ -1,10 +1,13 @@
 from django.test import TestCase
 from django.core.files.base import ContentFile
 from django.core.files import File
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.exceptions import ValidationError
 
 from tests.models import TestModel, TestVideoModel
 from tests.test_helpers import get_random_name
 from cloudinary_storage.storage import RawMediaCloudinaryStorage, VideoMediaCloudinaryStorage
+from cloudinary_storage import app_settings
 
 
 class TestModelTests(TestCase):
@@ -27,9 +30,18 @@ class TestVideoModelTests(TestCase):
         video = File(open('tests/dummy-video.mp4', 'rb'))
         model = TestVideoModel(name='name')
         model.video.save(file_name, video)
+        model.full_clean()
         file_name = model.video.name
         storage = VideoMediaCloudinaryStorage()
         try:
             self.assertTrue(storage.exists(file_name))
         finally:
             storage.delete(file_name)
+
+    def test_invalid_video_raises_valuation_error(self):
+        model = TestVideoModel(name='name')
+        invalid_file = SimpleUploadedFile(get_random_name(), b'this is not a video', content_type='video/mp4')
+        model.video = invalid_file
+        with self.assertRaises(ValidationError) as e:
+            model.full_clean()
+        self.assertEqual(e.exception.messages, [app_settings.INVALID_VIDEO_ERROR_MESSAGE])

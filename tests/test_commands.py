@@ -1,17 +1,22 @@
-from django.test import TestCase
 from django.core.files.base import ContentFile
 from django.core.files.images import ImageFile
+from django.test import TestCase
 
 from cloudinary_storage.management.commands.deleteorphanedmedia import Command as DeleteOrphanedMediaCommand
 from cloudinary_storage.storage import MediaCloudinaryStorage, RawMediaCloudinaryStorage, RESOURCE_TYPES
+from cloudinary_storage import app_settings
 from tests.models import TestModel, TestImageModel, TestModelWithoutFile
-from tests.test_helpers import get_random_name
+from tests.test_helpers import get_random_name, set_media_tag
+
+TEMPORARY_TAG = get_random_name()
+PREVIOUS_TAG = app_settings.MEDIA_TAG
 
 
 class DeleteOrphanedMediaCommandTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        set_media_tag(TEMPORARY_TAG)
         TestModelWithoutFile.objects.create(name='without file')
         TestModel.objects.create(name='without file')
         TestImageModel.objects.create(name='without image')
@@ -63,3 +68,4 @@ class DeleteOrphanedMediaCommandTests(TestCase):
         raw_storage.delete(cls.file_removed_2)
         image_storage = MediaCloudinaryStorage()
         image_storage.delete(cls.file_4)
+        set_media_tag(PREVIOUS_TAG)

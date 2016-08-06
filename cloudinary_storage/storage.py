@@ -5,6 +5,7 @@ import cloudinary.uploader
 import cloudinary.api
 import requests
 
+from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import UploadedFile
 from django.core.files.storage import Storage
@@ -47,8 +48,7 @@ class MediaCloudinaryStorage(Storage):
         folder = os.path.dirname(name)
         if folder:
             options['folder'] = folder
-        response = cloudinary.uploader.upload(content, **options)
-        return response
+        return cloudinary.uploader.upload(content, **options)
 
     def _save(self, name, content):
         content = UploadedFile(content, name)

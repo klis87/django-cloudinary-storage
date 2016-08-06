@@ -1,6 +1,7 @@
 from django.db import models
 
 from cloudinary_storage.storage import MediaCloudinaryStorage, RawMediaCloudinaryStorage, VideoMediaCloudinaryStorage
+from cloudinary_storage.validators import validate_video
 
 
 class TestModel(models.Model):
@@ -20,4 +21,5 @@ class TestModelWithoutFile(models.Model):
 
 class TestVideoModel(models.Model):
     name = models.CharField(max_length=100)
-    video = models.FileField(upload_to='tests-videos/', blank=True, storage=VideoMediaCloudinaryStorage())
+    video = models.FileField(upload_to='tests-videos/', blank=True, storage=VideoMediaCloudinaryStorage(),
+                             validators=[validate_video])
