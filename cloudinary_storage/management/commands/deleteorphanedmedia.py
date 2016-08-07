@@ -48,7 +48,9 @@ class Command(BaseCommand):
         files_to_remove = {}
         uploaded_media = self.get_uploaded_media()
         for resources_type in self.get_resource_types():
-            resources = set(get_resources(resources_type, app_settings.MEDIA_TAG))
+            resources = get_resources(resources_type, app_settings.MEDIA_TAG)
+            exclude_paths = app_settings.EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS
+            resources = {resource for resource in resources if not resource.startswith(exclude_paths)}
             files_to_remove[resources_type] = resources - uploaded_media
         return files_to_remove
 
@@ -62,6 +64,7 @@ class Command(BaseCommand):
         for resource_type, files_per_type in files.items():
             for file in files_per_type:
                 storages_per_type[resource_type].delete(file)
+                self.stdout.write('Deleted {}.'.format(file))
 
     def handle(self, *args, **options):
         files_to_remove = self.get_files_to_remove()

@@ -75,6 +75,17 @@ class DeleteOrphanedMediaCommandHelpersTests(BaseOrphanedMediaCommandTestsMixin,
         }
         self.assertEqual(command.get_files_to_remove(), expected)
 
+    def test_files_to_remove_with_exclude_setting(self):
+        app_settings.EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS = ('tests/',)
+        command = DeleteOrphanedMediaCommand()
+        expected = {
+            RESOURCE_TYPES['RAW']: set(),
+            RESOURCE_TYPES['IMAGE']: set(),
+            RESOURCE_TYPES['VIDEO']: set()
+        }
+        self.assertEqual(command.get_files_to_remove(), expected)
+        app_settings.EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS = ()
+
 
 class DeleteOrphanedMediaCommandExecutionTests(BaseOrphanedMediaCommandTestsMixin, TestCase):
     def test_command_execution_correctly_removes_orphaned_files(self):
