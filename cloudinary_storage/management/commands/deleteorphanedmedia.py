@@ -12,6 +12,10 @@ from cloudinary_storage import app_settings
 class Command(BaseCommand):
     help = 'Removes all orphaned media files'
 
+    def add_arguments(self, parser):
+        parser.add_argument('--noinput', action='store_true', dest='noinput',
+                            help='Do not prompt the user for input of any kind.')
+
     def models(self):
         return apps.get_models()
 
@@ -47,3 +51,29 @@ class Command(BaseCommand):
             resources = set(get_resources(resources_type, app_settings.MEDIA_TAG))
             files_to_remove[resources_type] = resources - uploaded_media
         return files_to_remove
+
+    def get_flattened_files_to_remove(self, files):
+        result = set()
+        for files_per_type in files.values():
+            result = result | files_per_type
+        return result
+
+    def delete_orphaned_files(self, files):
+        for resource_type, files_per_type in files.items():
+            for file in files_per_type:
+                storages_per_type[resource_type].delete(file)
+
+    def handle(self, *args, **options):
+        files_to_remove = self.get_files_to_remove()
+        flattened_files_to_remove = self.get_flattened_files_to_remove(files_to_remove)
+        length = len(flattened_files_to_remove)
+        files_to_remove_str = '\n- '.join(flattened_files_to_remove)
+        if not length:
+            self.stdout.write('There is no file to delete.')
+            return
+        self.stdout.write('{} files will be deleted:\n- {}'.format(length, files_to_remove_str))
+        if options['noinput'] or input("If you are sure to delete them, please type 'yes': ") == 'yes':
+            self.delete_orphaned_files(files_to_remove)
+            self.stdout.write('{} files have been deleted successfully.'.format(length))
+        else:
+            self.stdout.write('As ordered, no file has been deleted.')

@@ -7,5 +7,12 @@ CLOUDINARY_STORAGE = {
 }
 
 INSTALLED_APPS = [
-    'tests'
+    'tests',
+    'cloudinary_storage'
 ]
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3'
+    }
+}
