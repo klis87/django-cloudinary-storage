@@ -1,10 +1,12 @@
 from operator import itemgetter
+import os
 
 import cloudinary
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 user_settings = getattr(settings, 'CLOUDINARY_STORAGE', {})
 
 try:
@@ -23,3 +25,5 @@ cloudinary.config(
 MEDIA_TAG = user_settings.get('MEDIA_TAG', 'media')
 INVALID_VIDEO_ERROR_MESSAGE = user_settings.get('INVALID_VIDEO_ERROR_MESSAGE', 'Please upload a valid video file.')
 EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS = user_settings.get('EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS', ())
+
+STATICFILES_MANIFEST_ROOT = user_settings.get('STATICFILES_MANIFEST_ROOT', os.path.join(BASE_DIR, 'manifest'))

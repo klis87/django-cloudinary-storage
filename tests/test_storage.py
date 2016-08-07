@@ -1,10 +1,12 @@
 from unittest import mock
+import os.path
 
 from requests.exceptions import HTTPError
 from django.test import SimpleTestCase
 from django.core.files.base import ContentFile
 
-from cloudinary_storage.storage import MediaCloudinaryStorage
+from cloudinary_storage.storage import MediaCloudinaryStorage, ManifestCloudinaryStorage
+from cloudinary_storage import app_settings
 from tests.test_helpers import get_random_name
 
 TAG = get_random_name()
@@ -105,3 +107,19 @@ class CloudinaryMediaStorageTests(SimpleTestCase):
     @classmethod
     def tearDownClass(cls):
         cls.storage.delete(cls.file_name)
+
+
+class ManifestCloudinaryStorageTests(SimpleTestCase):
+    def test_manifest_is_saved_to_proper_location(self):
+        storage = ManifestCloudinaryStorage()
+        file = ContentFile(b'Dummy manifest')
+        name = 'name'
+        storage.save(name, file)
+        expected_path = os.path.join(app_settings.STATICFILES_MANIFEST_ROOT, name)
+        try:
+            self.assertTrue(os.path.exists(expected_path))
+        finally:
+            try:
+                os.remove(expected_path)
+            except FileNotFoundError:
+                pass

@@ -5,10 +5,9 @@ import cloudinary.uploader
 import cloudinary.api
 import requests
 
-from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import UploadedFile
-from django.core.files.storage import Storage
+from django.core.files.storage import Storage, FileSystemStorage
 from django.utils.deconstruct import deconstructible
 
 from . import app_settings
@@ -113,3 +112,9 @@ storages_per_type = {
     RESOURCE_TYPES['RAW']: RawMediaCloudinaryStorage(),
     RESOURCE_TYPES['VIDEO']: VideoMediaCloudinaryStorage(),
 }
+
+
+class ManifestCloudinaryStorage(FileSystemStorage):
+    def __init__(self, location=None, base_url=None, *args, **kwargs):
+        location = app_settings.STATICFILES_MANIFEST_ROOT
+        super().__init__(location, base_url, *args, **kwargs)
