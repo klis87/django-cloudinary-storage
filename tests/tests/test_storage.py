@@ -127,11 +127,23 @@ class ManifestCloudinaryStorageTests(SimpleTestCase):
 
 
 class StaticCloudinaryStorageTests(SimpleTestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.storage = StaticCloudinaryStorage(tag=get_random_name())
+
     @override_settings(DEBUG=True)
     def test_url_with_debug_true(self):
-        storage = StaticCloudinaryStorage()
-        self.assertIn(settings.STATIC_URL, storage.url('name'))
+        self.assertIn(settings.STATIC_URL, self.storage.url('name'))
 
     def test_url_with_debug_false(self):
-        storage = StaticCloudinaryStorage()
-        self.assertIn('cloudinary', storage.url('name'))
+        self.assertIn('cloudinary', self.storage.url('name'))
+
+    def test_file_exists_with_the_same_name_as_before_save(self):
+        file = ContentFile(b'some content')
+        name = get_random_name()
+        self.storage.save(name, file)
+        try:
+            self.assertTrue(self.storage.exists(name))
+        finally:
+            self.storage.delete(name)

@@ -124,6 +124,10 @@ class StaticCloudinaryStorage(MediaCloudinaryStorage):
             return settings.STATIC_URL + name
         return super().url(name)
 
+    def _upload(self, name, content):
+        return cloudinary.uploader.upload(content, public_id=name, resource_type=self.RESOURCE_TYPE,
+                                              invalidate=True, tags=self.TAG)
+
 
 class ManifestCloudinaryStorage(FileSystemStorage):
     def __init__(self, location=None, base_url=None, *args, **kwargs):
