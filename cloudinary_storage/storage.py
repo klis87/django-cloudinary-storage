@@ -1,3 +1,4 @@
+import json
 import os
 
 import cloudinary
@@ -10,7 +11,8 @@ from django.core.files.uploadedfile import UploadedFile
 from django.core.files.storage import Storage, FileSystemStorage
 from django.utils.deconstruct import deconstructible
 from django.conf import settings
-from django.contrib.staticfiles.storage import HashedFilesMixin
+from django.contrib.staticfiles.storage import HashedFilesMixin, ManifestFilesMixin
+from django.utils.six.moves.urllib.parse import urlsplit, urlunsplit, unquote
 
 from . import app_settings
 from .helpers import get_resources_by_path
@@ -152,3 +154,64 @@ class ManifestCloudinaryStorage(FileSystemStorage):
     def __init__(self, location=None, base_url=None, *args, **kwargs):
         location = app_settings.STATICFILES_MANIFEST_ROOT
         super().__init__(location, base_url, *args, **kwargs)
+
+
+class HashCloudinaryMixin(object):
+    def __init__(self, *args, **kwargs):
+        self.manifest_storage = ManifestCloudinaryStorage()
+        super().__init__(*args, **kwargs)
+
+    def hashed_name(self, name, content=None):
+        parsed_name = urlsplit(unquote(name))
+        clean_name = parsed_name.path.strip()
+        opened = False
+        if content is None:
+            storage, path = self.paths[clean_name]
+            try:
+                content = storage.open(path)
+            except FileNotFoundError:
+                raise ValueError("The file '%s' could not be found with %r." % (clean_name, self))
+            opened = True
+        try:
+            file_hash = self.file_hash(clean_name, content)
+        finally:
+            if opened:
+                content.close()
+        path, filename = os.path.split(clean_name)
+        root, ext = os.path.splitext(filename)
+        if file_hash is not None:
+            file_hash = ".%s" % file_hash
+        hashed_name = os.path.join(path, "%s%s%s" % (root, file_hash, ext))
+        unparsed_name = list(parsed_name)
+        unparsed_name[2] = hashed_name
+        # Special casing for a @font-face hack, like url(myfont.eot?#iefix")
+        # http://www.fontspring.com/blog/the-new-bulletproof-font-face-syntax
+        if '?#' in name and not unparsed_name[3]:
+            unparsed_name[2] += '?'
+        return urlunsplit(unparsed_name)
+
+    def post_process(self, paths, dry_run=False, **options):
+        self.paths = paths
+        original_delete = self.delete
+        self.delete = lambda name: None  # temporarily overwritten to prevent any deletion in post_process
+        for response in super().post_process(paths, dry_run, **options):
+            yield response
+        self.delete = original_delete
+
+    def read_manifest(self):
+        try:
+            with self.manifest_storage.open(self.manifest_name) as manifest:
+                return manifest.read().decode('utf-8')
+        except IOError:
+            return None
+
+    def save_manifest(self):
+        payload = {'paths': self.hashed_files, 'version': self.manifest_version}
+        if self.manifest_storage.exists(self.manifest_name):
+            self.manifest_storage.delete(self.manifest_name)
+        contents = json.dumps(payload).encode('utf-8')
+        self.manifest_storage._save(self.manifest_name, ContentFile(contents))
+
+
+class StaticHashedCloudinaryStorage(HashCloudinaryMixin, ManifestFilesMixin, StaticCloudinaryStorage):
+    pass

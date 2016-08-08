@@ -1,19 +1,26 @@
 from unittest import mock
+import os
 
 from django.core.files.base import ContentFile
 from django.core.files.images import ImageFile
 from django.core.management import call_command
-from django.test import TestCase, SimpleTestCase
+from django.test import TestCase, SimpleTestCase, override_settings
 from django.utils.six import StringIO
 
 from cloudinary_storage.management.commands.deleteorphanedmedia import Command as DeleteOrphanedMediaCommand
 from cloudinary_storage.storage import (MediaCloudinaryStorage, RawMediaCloudinaryStorage, StaticCloudinaryStorage,
-                                        RESOURCE_TYPES)
+                                        StaticHashedCloudinaryStorage, RESOURCE_TYPES)
 from cloudinary_storage import app_settings
 from tests.models import TestModel, TestImageModel, TestModelWithoutFile
 from tests.tests.test_helpers import get_random_name, set_media_tag
 
 DEFAULT_MEDIA_TAG = app_settings.MEDIA_TAG
+
+
+def execute_command(*args):
+    out = StringIO()
+    call_command(*args, stdout=out)
+    return out.getvalue()
 
 
 class BaseOrphanedMediaCommandTestsMixin(object):
@@ -90,9 +97,8 @@ class DeleteOrphanedMediaCommandHelpersTests(BaseOrphanedMediaCommandTestsMixin,
 
 class DeleteOrphanedMediaCommandExecutionTests(BaseOrphanedMediaCommandTestsMixin, TestCase):
     def test_command_execution_correctly_removes_orphaned_files(self):
-        out = StringIO()
-        call_command('deleteorphanedmedia', '--noinput', stdout=out)
-        self.assertIn('2 files have been deleted successfully.', out.getvalue())
+        output = execute_command('deleteorphanedmedia', '--noinput')
+        self.assertIn('2 files have been deleted successfully.', output)
         storage = RawMediaCloudinaryStorage()
         self.assertTrue(storage.exists(self.file))
         self.assertTrue(storage.exists(self.file_2))
@@ -104,9 +110,8 @@ class DeleteOrphanedMediaCommandExecutionTests(BaseOrphanedMediaCommandTestsMixi
         with mock.patch.object(DeleteOrphanedMediaCommand,
                                'get_flattened_files_to_remove',
                                return_value=set()):
-            out = StringIO()
-            call_command('deleteorphanedmedia', stdout=out)
-            self.assertIn('There is no file to delete.', out.getvalue())
+            output = execute_command('deleteorphanedmedia')
+            self.assertIn('There is no file to delete.', output)
 
 
 class DeleteOrphanedMediaCommandPromptTests(TestCase):
@@ -117,28 +122,56 @@ class DeleteOrphanedMediaCommandPromptTests(TestCase):
             with mock.patch.object(DeleteOrphanedMediaCommand,
                                    'delete_orphaned_files'):
                 with mock.patch('builtins.input', return_value='yes'):
-                    out = StringIO()
-                    call_command('deleteorphanedmedia', stdout=out)
-                    self.assertIn('3 files have been deleted successfully.', out.getvalue())
+                    output = execute_command('deleteorphanedmedia')
+                    self.assertIn('3 files have been deleted successfully.', output)
 
     def test_command_execution_with_prompt_as_no(self):
         with mock.patch.object(DeleteOrphanedMediaCommand,
                                'get_flattened_files_to_remove',
                                return_value={'1'}):
             with mock.patch('builtins.input', return_value='no'):
-                out = StringIO()
-                call_command('deleteorphanedmedia', stdout=out)
-                self.assertIn('As ordered, no file has been deleted.', out.getvalue())
+                output = execute_command('deleteorphanedmedia')
+                self.assertIn('As ordered, no file has been deleted.', output)
 
 
 STATIC_FILES = ('tests/css/style.css', 'tests/css/font.css')
 
 
+@override_settings(STATICFILES_STORAGE='cloudinary_storage.storage.StaticCloudinaryStorage')
 class CollectStaticCommandTests(SimpleTestCase):
     @mock.patch.object(StaticCloudinaryStorage, 'save')
     def test_command_saves_static_files(self, save_mock):
-        out = StringIO()
-        call_command('collectstatic', '--noinput', stdout=out)
+        output = execute_command('collectstatic', '--noinput')
         self.assertEqual(save_mock.call_count, 2)
         for file in STATIC_FILES:
-            self.assertIn(file, out.getvalue())
+            self.assertIn(file, output)
+        self.assertIn('2 static files copied.', output)
+
+
+@override_settings(STATICFILES_STORAGE='cloudinary_storage.storage.StaticHashedCloudinaryStorage')
+@mock.patch.object(StaticHashedCloudinaryStorage, '_save')
+class CollectStaticCommandWithHashedStorageTests(SimpleTestCase):
+    def test_command_saves_hashed_static_files(self, save_mock):
+        output = execute_command('collectstatic', '--noinput')
+        self.assertEqual(save_mock.call_count, 2)
+        for file in STATIC_FILES:
+            self.assertIn(file, output)
+        self.assertIn('0 static files copied, 2 post-processed.', output)
+
+    def test_command_saves_unhashed_static_files_with_upload_unhashed_files_arg(self, save_mock):
+        output = execute_command('collectstatic', '--noinput', '--upload-unhashed-files')
+        self.assertEqual(save_mock.call_count, 4)
+        for file in STATIC_FILES:
+            self.assertIn(file, output)
+        self.assertIn('2 static files copied, 2 post-processed.', output)
+
+    def test_command_saves_manifest_file(self, save_mock):
+        name = get_random_name()
+        StaticHashedCloudinaryStorage.manifest_name = name
+        execute_command('collectstatic', '--noinput')
+        try:
+            manifest_path = os.path.join(app_settings.STATICFILES_MANIFEST_ROOT, name)
+            self.assertTrue(os.path.exists(manifest_path))
+            os.remove(manifest_path)
+        finally:
+            StaticHashedCloudinaryStorage.manifest_name = 'staticfiles.json'
