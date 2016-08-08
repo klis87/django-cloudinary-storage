@@ -9,6 +9,7 @@ from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import UploadedFile
 from django.core.files.storage import Storage, FileSystemStorage
 from django.utils.deconstruct import deconstructible
+from django.conf import settings
 
 from . import app_settings
 from .helpers import get_resources_by_path
@@ -112,6 +113,16 @@ storages_per_type = {
     RESOURCE_TYPES['RAW']: RawMediaCloudinaryStorage(),
     RESOURCE_TYPES['VIDEO']: VideoMediaCloudinaryStorage(),
 }
+
+
+class StaticCloudinaryStorage(MediaCloudinaryStorage):
+    RESOURCE_TYPE = RESOURCE_TYPES['RAW']
+    TAG = app_settings.STATIC_TAG
+
+    def url(self, name):
+        if settings.DEBUG:
+            return settings.STATIC_URL + name
+        return super().url(name)
 
 
 class ManifestCloudinaryStorage(FileSystemStorage):

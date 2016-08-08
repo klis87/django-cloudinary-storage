@@ -27,7 +27,7 @@ class TestModelTests(TestCase):
 class TestVideoModelTests(TestCase):
     def test_video_can_be_uploaded(self):
         file_name = get_random_name()
-        video = File(open('tests/dummy-video.mp4', 'rb'))
+        video = File(open('tests/dummy-files/dummy-video.mp4', 'rb'))
         model = TestVideoModel(name='name')
         model.video.save(file_name, video)
         model.full_clean()

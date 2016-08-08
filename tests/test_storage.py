@@ -2,10 +2,11 @@ from unittest import mock
 import os.path
 
 from requests.exceptions import HTTPError
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, override_settings
 from django.core.files.base import ContentFile
+from django.conf import settings
 
-from cloudinary_storage.storage import MediaCloudinaryStorage, ManifestCloudinaryStorage
+from cloudinary_storage.storage import MediaCloudinaryStorage, ManifestCloudinaryStorage, StaticCloudinaryStorage
 from cloudinary_storage import app_settings
 from tests.test_helpers import get_random_name
 
@@ -123,3 +124,14 @@ class ManifestCloudinaryStorageTests(SimpleTestCase):
                 os.remove(expected_path)
             except FileNotFoundError:
                 pass
+
+
+class StaticCloudinaryStorageTests(SimpleTestCase):
+    @override_settings(DEBUG=True)
+    def test_url_with_debug_true(self):
+        storage = StaticCloudinaryStorage()
+        self.assertIn(settings.STATIC_URL, storage.url('name'))
+
+    def test_url_with_debug_false(self):
+        storage = StaticCloudinaryStorage()
+        self.assertIn('cloudinary', storage.url('name'))
