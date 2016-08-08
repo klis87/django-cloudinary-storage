@@ -2,13 +2,14 @@ import os
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEBUG = True
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 SECRET_KEY = 'my-key'
 ROOT_URLCONF = 'tests.urls'
 
 INSTALLED_APPS = [
     'tests',
     'cloudinary_storage',
-    'django.contrib.admin',
+    # 'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',

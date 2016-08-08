@@ -127,7 +127,7 @@ class StaticCloudinaryStorage(MediaCloudinaryStorage):
 
     def _upload(self, name, content):
         return cloudinary.uploader.upload(content, public_id=name, resource_type=self.RESOURCE_TYPE,
-                                              invalidate=True, tags=self.TAG)
+                                          invalidate=True, tags=self.TAG)
 
     file_hash = HashedFilesMixin.file_hash  # we only need 1 method, so we do this instead of subclassing
 

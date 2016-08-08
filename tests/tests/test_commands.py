@@ -3,16 +3,17 @@ from unittest import mock
 from django.core.files.base import ContentFile
 from django.core.files.images import ImageFile
 from django.core.management import call_command
-from django.test import TestCase
+from django.test import TestCase, SimpleTestCase
 from django.utils.six import StringIO
 
 from cloudinary_storage.management.commands.deleteorphanedmedia import Command as DeleteOrphanedMediaCommand
-from cloudinary_storage.storage import MediaCloudinaryStorage, RawMediaCloudinaryStorage, RESOURCE_TYPES
+from cloudinary_storage.storage import (MediaCloudinaryStorage, RawMediaCloudinaryStorage, StaticCloudinaryStorage,
+                                        RESOURCE_TYPES)
 from cloudinary_storage import app_settings
 from tests.models import TestModel, TestImageModel, TestModelWithoutFile
 from tests.tests.test_helpers import get_random_name, set_media_tag
 
-PREVIOUS_TAG = app_settings.MEDIA_TAG
+DEFAULT_MEDIA_TAG = app_settings.MEDIA_TAG
 
 
 class BaseOrphanedMediaCommandTestsMixin(object):
@@ -52,7 +53,7 @@ class BaseOrphanedMediaCommandTestsMixin(object):
         raw_storage.delete(cls.file_removed_2)
         image_storage = MediaCloudinaryStorage()
         image_storage.delete(cls.file_4)
-        set_media_tag(PREVIOUS_TAG)
+        set_media_tag(DEFAULT_MEDIA_TAG)
 
 
 class DeleteOrphanedMediaCommandHelpersTests(BaseOrphanedMediaCommandTestsMixin, TestCase):
@@ -128,3 +129,16 @@ class DeleteOrphanedMediaCommandPromptTests(TestCase):
                 out = StringIO()
                 call_command('deleteorphanedmedia', stdout=out)
                 self.assertIn('As ordered, no file has been deleted.', out.getvalue())
+
+
+STATIC_FILES = ('tests/css/style.css', 'tests/css/font.css')
+
+
+class CollectStaticCommandTests(SimpleTestCase):
+    @mock.patch.object(StaticCloudinaryStorage, 'save')
+    def test_command_saves_static_files(self, save_mock):
+        out = StringIO()
+        call_command('collectstatic', '--noinput', stdout=out)
+        self.assertEqual(save_mock.call_count, 2)
+        for file in STATIC_FILES:
+            self.assertIn(file, out.getvalue())
