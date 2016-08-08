@@ -131,6 +131,10 @@ class StaticCloudinaryStorageTests(SimpleTestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.storage = StaticCloudinaryStorage(tag=get_random_name())
+        cls.name = get_random_name()
+        cls.content = b'some content'
+        cls.file = ContentFile(cls.content)
+        cls.storage.save(cls.name, cls.file)
 
     @override_settings(DEBUG=True)
     def test_url_with_debug_true(self):
@@ -140,10 +144,19 @@ class StaticCloudinaryStorageTests(SimpleTestCase):
         self.assertIn('cloudinary', self.storage.url('name'))
 
     def test_file_exists_with_the_same_name_as_before_save(self):
-        file = ContentFile(b'some content')
-        name = get_random_name()
-        self.storage.save(name, file)
-        try:
-            self.assertTrue(self.storage.exists(name))
-        finally:
-            self.storage.delete(name)
+        self.assertTrue(self.storage.exists(self.name))
+
+    @mock.patch.object(MediaCloudinaryStorage, '_save')
+    def test_file_wont_be_uploaded_with_the_same_content(self, save_mock):
+        self.storage.save(self.name, self.file)
+        self.assertFalse(save_mock.called)
+
+    @mock.patch.object(MediaCloudinaryStorage, '_save')
+    def test_file_will_be_uploaded_with_different_content(self, save_mock):
+        changed_file = ContentFile(b'changed content')
+        self.storage.save(self.name, changed_file)
+        save_mock.assert_called_once_with(self.name, changed_file)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.storage.delete(cls.name)

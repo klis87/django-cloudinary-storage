@@ -10,6 +10,7 @@ from django.core.files.uploadedfile import UploadedFile
 from django.core.files.storage import Storage, FileSystemStorage
 from django.utils.deconstruct import deconstructible
 from django.conf import settings
+from django.contrib.staticfiles.storage import HashedFilesMixin
 
 from . import app_settings
 from .helpers import get_resources_by_path
@@ -127,6 +128,24 @@ class StaticCloudinaryStorage(MediaCloudinaryStorage):
     def _upload(self, name, content):
         return cloudinary.uploader.upload(content, public_id=name, resource_type=self.RESOURCE_TYPE,
                                               invalidate=True, tags=self.TAG)
+
+    file_hash = HashedFilesMixin.file_hash  # we only need 1 method, so we do this instead of subclassing
+
+    def _exists_with_etag(self, name, content):
+        url = self._get_url(name)
+        response = requests.head(url)
+        if response.status_code == 404:
+            return False
+        etag = response.headers['ETAG'].split('"')[1]
+        hash = self.file_hash(name, content)
+        return etag.startswith(hash)
+
+    def _save(self, name, content):
+        if self._exists_with_etag(name, content):
+            return name
+        else:
+            content.seek(0)
+            return super()._save(name, content)
 
 
 class ManifestCloudinaryStorage(FileSystemStorage):
