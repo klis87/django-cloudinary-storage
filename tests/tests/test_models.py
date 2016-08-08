@@ -5,7 +5,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.exceptions import ValidationError
 
 from tests.models import TestModel, TestVideoModel
-from tests.test_helpers import get_random_name
+from tests.tests.test_helpers import get_random_name
 from cloudinary_storage.storage import RawMediaCloudinaryStorage, VideoMediaCloudinaryStorage
 from cloudinary_storage import app_settings
 

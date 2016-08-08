@@ -10,7 +10,7 @@ from cloudinary_storage.management.commands.deleteorphanedmedia import Command a
 from cloudinary_storage.storage import MediaCloudinaryStorage, RawMediaCloudinaryStorage, RESOURCE_TYPES
 from cloudinary_storage import app_settings
 from tests.models import TestModel, TestImageModel, TestModelWithoutFile
-from tests.test_helpers import get_random_name, set_media_tag
+from tests.tests.test_helpers import get_random_name, set_media_tag
 
 PREVIOUS_TAG = app_settings.MEDIA_TAG
 

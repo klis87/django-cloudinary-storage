@@ -8,7 +8,7 @@ from django.conf import settings
 
 from cloudinary_storage.storage import MediaCloudinaryStorage, ManifestCloudinaryStorage, StaticCloudinaryStorage
 from cloudinary_storage import app_settings
-from tests.test_helpers import get_random_name
+from tests.tests.test_helpers import get_random_name
 
 TAG = get_random_name()
 
