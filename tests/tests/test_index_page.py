@@ -22,9 +22,6 @@ class IndexPageTestsWithUnhashedStaticStorageTests(SimpleTestCase):
         self.assertContains(response, '/raw/upload/v1/tests/css/style.css')
 
 
-DEFAULT_MANIFEST_ROOT = app_settings.STATICFILES_MANIFEST_ROOT
-
-
 class StaticHashedStorageTestsMixin(object):
     @classmethod
     def setUpClass(cls):
@@ -40,14 +37,14 @@ class StaticHashedStorageTestsMixin(object):
     @classmethod
     def tearDownClass(cls):
         super().tearDownClass()
-        app_settings.STATICFILES_MANIFEST_ROOT = DEFAULT_MANIFEST_ROOT
+        StaticHashedCloudinaryStorage.manifest_name = 'staticfiles.json'
 
 
 @override_settings(STATICFILES_STORAGE='cloudinary_storage.storage.StaticHashedCloudinaryStorage')
 class IndexPageTestsWithStaticHashedStorageTests(StaticHashedStorageTestsMixin, SimpleTestCase):
     @classmethod
     def setUpClass(cls):
-        app_settings.STATICFILES_MANIFEST_ROOT = 'manifest-' + get_random_name()
+        StaticHashedCloudinaryStorage.manifest_name = get_random_name()
         super().setUpClass()
 
     @override_settings(DEBUG=True)
@@ -64,10 +61,11 @@ class IndexPageTestsWithStaticHashedStorageTests(StaticHashedStorageTestsMixin, 
 class IndexPageTestsWithStaticHashedStorageWithManifestTests(StaticHashedStorageTestsMixin, SimpleTestCase):
     @classmethod
     def setUpClass(cls):
-        app_settings.STATICFILES_MANIFEST_ROOT = 'manifest-' + get_random_name()
+        name = get_random_name()
+        StaticHashedCloudinaryStorage.manifest_name = name
         with mock.patch.object(StaticHashedCloudinaryStorage, '_upload'):
             execute_command('collectstatic', '--noinput')
-            cls.manifest_path = os.path.join(app_settings.STATICFILES_MANIFEST_ROOT, 'staticfiles.json')
+            cls.manifest_path = os.path.join(app_settings.STATICFILES_MANIFEST_ROOT, name)
             with open(cls.manifest_path) as f:
                 cls.manifest = f.read()
         super().setUpClass()
@@ -90,5 +88,4 @@ class IndexPageTestsWithStaticHashedStorageWithManifestTests(StaticHashedStorage
     @classmethod
     def tearDownClass(cls):
         os.remove(cls.manifest_path)
-        os.rmdir(app_settings.STATICFILES_MANIFEST_ROOT)
         super().tearDownClass()
