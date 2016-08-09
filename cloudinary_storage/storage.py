@@ -6,12 +6,13 @@ import cloudinary.uploader
 import cloudinary.api
 import requests
 
-from django.core.files.base import ContentFile
+from django.core.files.base import ContentFile, File
 from django.core.files.uploadedfile import UploadedFile
 from django.core.files.storage import Storage, FileSystemStorage
 from django.utils.deconstruct import deconstructible
 from django.conf import settings
 from django.contrib.staticfiles.storage import HashedFilesMixin, ManifestFilesMixin
+from django.contrib.staticfiles import finders
 from django.utils.six.moves.urllib.parse import urlsplit, urlunsplit, unquote
 
 from . import app_settings
@@ -147,7 +148,8 @@ class StaticCloudinaryStorage(MediaCloudinaryStorage):
             return name
         else:
             content.seek(0)
-            return super()._save(name, content)
+            super()._save(name, content)
+            return name
 
 
 class ManifestCloudinaryStorage(FileSystemStorage):
@@ -166,9 +168,9 @@ class HashCloudinaryMixin(object):
         clean_name = parsed_name.path.strip()
         opened = False
         if content is None:
-            storage, path = self.paths[clean_name]
+            absolute_path = finders.find(clean_name)
             try:
-                content = storage.open(path)
+                content = File(open(absolute_path, 'rb'))
             except FileNotFoundError:
                 raise ValueError("The file '%s' could not be found with %r." % (clean_name, self))
             opened = True
@@ -191,7 +193,6 @@ class HashCloudinaryMixin(object):
         return urlunsplit(unparsed_name)
 
     def post_process(self, paths, dry_run=False, **options):
-        self.paths = paths
         original_delete = self.delete
         self.delete = lambda name: None  # temporarily overwritten to prevent any deletion in post_process
         for response in super().post_process(paths, dry_run, **options):

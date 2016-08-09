@@ -3,24 +3,15 @@ import os
 
 from django.core.files.base import ContentFile
 from django.core.files.images import ImageFile
-from django.core.management import call_command
 from django.test import TestCase, SimpleTestCase, override_settings
-from django.utils.six import StringIO
-
 from cloudinary_storage.management.commands.deleteorphanedmedia import Command as DeleteOrphanedMediaCommand
 from cloudinary_storage.storage import (MediaCloudinaryStorage, RawMediaCloudinaryStorage, StaticCloudinaryStorage,
                                         StaticHashedCloudinaryStorage, RESOURCE_TYPES)
 from cloudinary_storage import app_settings
 from tests.models import TestModel, TestImageModel, TestModelWithoutFile
-from tests.tests.test_helpers import get_random_name, set_media_tag
+from tests.tests.test_helpers import get_random_name, set_media_tag, execute_command
 
 DEFAULT_MEDIA_TAG = app_settings.MEDIA_TAG
-
-
-def execute_command(*args):
-    out = StringIO()
-    call_command(*args, stdout=out)
-    return out.getvalue()
 
 
 class BaseOrphanedMediaCommandTestsMixin(object):
