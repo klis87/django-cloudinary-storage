@@ -142,14 +142,16 @@ class CollectStaticCommandTests(SimpleTestCase):
 @override_settings(STATICFILES_STORAGE='cloudinary_storage.storage.StaticHashedCloudinaryStorage')
 @mock.patch.object(StaticHashedCloudinaryStorage, '_save')
 class CollectStaticCommandWithHashedStorageTests(SimpleTestCase):
-    def test_command_saves_hashed_static_files(self, save_mock):
+    @mock.patch.object(StaticHashedCloudinaryStorage, 'save_manifest')
+    def test_command_saves_hashed_static_files(self, save_manifest_mock, save_mock):
         output = execute_command('collectstatic', '--noinput')
         self.assertEqual(save_mock.call_count, 2)
         for file in STATIC_FILES:
             self.assertIn(file, output)
         self.assertIn('0 static files copied, 2 post-processed.', output)
 
-    def test_command_saves_unhashed_static_files_with_upload_unhashed_files_arg(self, save_mock):
+    @mock.patch.object(StaticHashedCloudinaryStorage, 'save_manifest')
+    def test_command_saves_unhashed_static_files_with_upload_unhashed_files_arg(self, save_manifest_mock, save_mock):
         output = execute_command('collectstatic', '--noinput', '--upload-unhashed-files')
         self.assertEqual(save_mock.call_count, 4)
         for file in STATIC_FILES:
