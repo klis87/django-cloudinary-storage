@@ -4,12 +4,15 @@ import os
 from django.core.files.base import ContentFile
 from django.core.files.images import ImageFile
 from django.test import TestCase, SimpleTestCase, override_settings
+from django.core.management import CommandError
+
 from cloudinary_storage.management.commands.deleteorphanedmedia import Command as DeleteOrphanedMediaCommand
+from cloudinary_storage.management.commands.deleteredundantstatic import Command as DeleteRedundantStaticCommand
 from cloudinary_storage.storage import (MediaCloudinaryStorage, RawMediaCloudinaryStorage, StaticCloudinaryStorage,
                                         StaticHashedCloudinaryStorage, RESOURCE_TYPES)
 from cloudinary_storage import app_settings
 from tests.models import TestModel, TestImageModel, TestModelWithoutFile
-from tests.tests.test_helpers import get_random_name, set_media_tag, execute_command
+from tests.tests.test_helpers import get_random_name, set_media_tag, execute_command, StaticHashedStorageTestsMixin
 
 DEFAULT_MEDIA_TAG = app_settings.MEDIA_TAG
 
@@ -62,7 +65,7 @@ class DeleteOrphanedMediaCommandHelpersTests(BaseOrphanedMediaCommandTestsMixin,
 
     def test_get_uploaded_media(self):
         command = DeleteOrphanedMediaCommand()
-        self.assertEqual(command.get_uploaded_media(),
+        self.assertEqual(command.get_needful_files(),
                          {self.file, self.file_2, self.file_3, self.file_4})
 
     def test_files_to_remove(self):
@@ -168,3 +171,49 @@ class CollectStaticCommandWithHashedStorageTests(SimpleTestCase):
             os.remove(manifest_path)
         finally:
             StaticHashedCloudinaryStorage.manifest_name = 'staticfiles.json'
+
+
+@override_settings(STATICFILES_STORAGE='cloudinary_storage.storage.StaticHashedCloudinaryStorage')
+class DeleteRedundantStaticCommandTests(StaticHashedStorageTestsMixin, SimpleTestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        with mock.patch.object(StaticHashedCloudinaryStorage, '_upload'):
+            execute_command('collectstatic', '--noinput')
+
+    @mock.patch.object(StaticHashedCloudinaryStorage, 'read_manifest', return_value=None)
+    def test_command_raises_error_when_manifest_doesnt_exist(self, read_manifest_mock):
+        with self.assertRaises(CommandError):
+            execute_command('deleteredundantstatic', '--noinput')
+
+    def test_get_exclude_paths_returns_empty_tuple(self):
+        command = DeleteRedundantStaticCommand()
+        self.assertEqual(command.get_exclude_paths(), ())
+
+    def test_get_needful_files_with_delete_unhashed_files_true(self):
+        command = DeleteRedundantStaticCommand()
+        command.delete_unhashed_files = True
+        expected_response = {
+            'tests/css/style.{}.css'.format(self.style_hash),
+            'tests/css/font.{}.css'.format(self.font_hash)
+        }
+        self.assertEqual(command.get_needful_files(), expected_response)
+
+    def test_get_needful_files_with_delete_unhashed_files_false(self):
+        command = DeleteRedundantStaticCommand()
+        command.delete_unhashed_files = False
+        expected_response = {
+            'tests/css/style.css',
+            'tests/css/style.{}.css'.format(self.style_hash),
+            'tests/css/font.css',
+            'tests/css/font.{}.css'.format(self.font_hash)
+        }
+        self.assertEqual(command.get_needful_files(), expected_response)
+
+    def test_command_doesnt_remove_anything_without_uploaded_files(self):
+        DeleteRedundantStaticCommand.TAG = get_random_name()
+        output = execute_command('deleteredundantstatic', '--noinput')
+        try:
+            self.assertIn('There is no file to delete.', output)
+        finally:
+            DeleteRedundantStaticCommand.TAG = app_settings.STATIC_TAG

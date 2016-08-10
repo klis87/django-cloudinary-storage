@@ -1,13 +1,9 @@
 from unittest import mock
-import os
 
 from django.test import SimpleTestCase, override_settings
-from django.core.files import File
-from django.contrib.staticfiles.storage import HashedFilesMixin
 
-from cloudinary_storage import app_settings
 from cloudinary_storage.storage import StaticHashedCloudinaryStorage
-from tests.tests.test_helpers import get_random_name, execute_command
+from tests.tests.test_helpers import execute_command, StaticHashedStorageTestsMixin
 
 
 @override_settings(STATICFILES_STORAGE='cloudinary_storage.storage.StaticCloudinaryStorage')
@@ -22,31 +18,8 @@ class IndexPageTestsWithUnhashedStaticStorageTests(SimpleTestCase):
         self.assertContains(response, '/raw/upload/v1/tests/css/style.css')
 
 
-class StaticHashedStorageTestsMixin(object):
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        hash_mixin = HashedFilesMixin()
-        content = File(open('tests/static/tests/css/style.css', 'rb'))
-        cls.style_hash = hash_mixin.file_hash('tests/css/style.css', content)
-        content.close()
-        content = File(open('tests/static/tests/css/font.css', 'rb'))
-        cls.font_hash = hash_mixin.file_hash('tests/css/font.css', content)
-        content.close()
-
-    @classmethod
-    def tearDownClass(cls):
-        super().tearDownClass()
-        StaticHashedCloudinaryStorage.manifest_name = 'staticfiles.json'
-
-
 @override_settings(STATICFILES_STORAGE='cloudinary_storage.storage.StaticHashedCloudinaryStorage')
 class IndexPageTestsWithStaticHashedStorageTests(StaticHashedStorageTestsMixin, SimpleTestCase):
-    @classmethod
-    def setUpClass(cls):
-        StaticHashedCloudinaryStorage.manifest_name = get_random_name()
-        super().setUpClass()
-
     @override_settings(DEBUG=True)
     def test_urls_with_debug_true(self):
         response = self.client.get('/')
@@ -61,14 +34,16 @@ class IndexPageTestsWithStaticHashedStorageTests(StaticHashedStorageTestsMixin, 
 class IndexPageTestsWithStaticHashedStorageWithManifestTests(StaticHashedStorageTestsMixin, SimpleTestCase):
     @classmethod
     def setUpClass(cls):
-        name = get_random_name()
-        StaticHashedCloudinaryStorage.manifest_name = name
+        super().setUpClass()
         with mock.patch.object(StaticHashedCloudinaryStorage, '_upload'):
             execute_command('collectstatic', '--noinput')
-            cls.manifest_path = os.path.join(app_settings.STATICFILES_MANIFEST_ROOT, name)
             with open(cls.manifest_path) as f:
                 cls.manifest = f.read()
-        super().setUpClass()
+
+    @override_settings(DEBUG=True)
+    def test_urls_with_debug_true(self):
+        response = self.client.get('/')
+        self.assertContains(response, '/static/tests/css/style.css')
 
     def test_urls_with_debug_false(self):
         response = self.client.get('/')
@@ -84,8 +59,3 @@ class IndexPageTestsWithStaticHashedStorageWithManifestTests(StaticHashedStorage
         self.assertIn('tests/css/style.{}.css'.format(self.style_hash), self.manifest)
         self.assertIn('tests/css/font.css', self.manifest)
         self.assertIn('tests/css/font.{}.css'.format(self.font_hash), self.manifest)
-
-    @classmethod
-    def tearDownClass(cls):
-        os.remove(cls.manifest_path)
-        super().tearDownClass()

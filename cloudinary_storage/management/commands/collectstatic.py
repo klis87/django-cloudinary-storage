@@ -5,7 +5,7 @@ from django.conf import settings
 class Command(collectstatic.Command):
     def add_arguments(self, parser):
         super().add_arguments(parser)
-        parser.add_argument('--upload-unhashed-files', action='store_true',
+        parser.add_argument('--upload-unhashed-files', action='store_true', dest='upload_unhashed_files',
                             help='Apart from hashed files, upload unhashed ones as well. Use only when you need it.')
 
     def set_options(self, **options):

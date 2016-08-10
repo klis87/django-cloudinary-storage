@@ -11,10 +11,14 @@ from cloudinary_storage import app_settings
 
 class Command(BaseCommand):
     help = 'Removes all orphaned media files'
+    TAG = app_settings.MEDIA_TAG
 
     def add_arguments(self, parser):
-        parser.add_argument('--noinput', action='store_true', dest='noinput',
+        parser.add_argument('--noinput', action='store_true', dest='no_input',
                             help='Do not prompt the user for input of any kind.')
+
+    def set_options(self, **options):
+        self.no_input = options['no_input']
 
     def models(self):
         return apps.get_models()
@@ -25,15 +29,15 @@ class Command(BaseCommand):
                 yield field
 
     def get_resource_types(self):
-        media_types = set()
+        resource_types = set()
         for model in self.models():
             for field in self.model_file_fields(model):
-                media_type = field.storage.RESOURCE_TYPE
-                media_types.add(media_type)
-        return media_types
+                resource_type = field.storage.RESOURCE_TYPE
+                resource_types.add(resource_type)
+        return resource_types
 
-    def get_uploaded_media(self):
-        uploaded_media = []
+    def get_needful_files(self):
+        needful_files = []
         for model in self.models():
             media_fields = []
             for field in self.model_file_fields(model):
@@ -41,17 +45,20 @@ class Command(BaseCommand):
             if media_fields:
                 exclude_options = {media_field: '' for media_field in media_fields}
                 model_uploaded_media = model.objects.exclude(**exclude_options).values_list(*media_fields)
-                uploaded_media.extend(model_uploaded_media)
-        return set(chain.from_iterable(uploaded_media))
+                needful_files.extend(model_uploaded_media)
+        return set(chain.from_iterable(needful_files))
+
+    def get_exclude_paths(self):
+        return app_settings.EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS
 
     def get_files_to_remove(self):
         files_to_remove = {}
-        uploaded_media = self.get_uploaded_media()
+        needful_files = self.get_needful_files()
         for resources_type in self.get_resource_types():
-            resources = get_resources(resources_type, app_settings.MEDIA_TAG)
-            exclude_paths = app_settings.EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS
+            resources = get_resources(resources_type, self.TAG)
+            exclude_paths = self.get_exclude_paths()
             resources = {resource for resource in resources if not resource.startswith(exclude_paths)}
-            files_to_remove[resources_type] = resources - uploaded_media
+            files_to_remove[resources_type] = resources - needful_files
         return files_to_remove
 
     def get_flattened_files_to_remove(self, files):
@@ -67,6 +74,7 @@ class Command(BaseCommand):
                 self.stdout.write('Deleted {}.'.format(file))
 
     def handle(self, *args, **options):
+        self.set_options(**options)
         files_to_remove = self.get_files_to_remove()
         flattened_files_to_remove = self.get_flattened_files_to_remove(files_to_remove)
         length = len(flattened_files_to_remove)
@@ -75,7 +83,7 @@ class Command(BaseCommand):
             self.stdout.write('There is no file to delete.')
             return
         self.stdout.write('{} files will be deleted:\n- {}'.format(length, files_to_remove_str))
-        if options['noinput'] or input("If you are sure to delete them, please type 'yes': ") == 'yes':
+        if self.no_input or input("If you are sure to delete them, please type 'yes': ") == 'yes':
             self.delete_orphaned_files(files_to_remove)
             self.stdout.write('{} files have been deleted successfully.'.format(length))
         else:
