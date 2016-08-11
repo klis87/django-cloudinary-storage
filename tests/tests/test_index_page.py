@@ -1,9 +1,9 @@
-from unittest import mock
-
 from django.test import SimpleTestCase, override_settings
 
 from cloudinary_storage.storage import StaticHashedCloudinaryStorage
-from tests.tests.test_helpers import execute_command, StaticHashedStorageTestsMixin
+from tests.tests.test_helpers import execute_command, StaticHashedStorageTestsMixin, import_mock
+
+mock = import_mock()
 
 
 @override_settings(STATICFILES_STORAGE='cloudinary_storage.storage.StaticCloudinaryStorage')
@@ -34,7 +34,7 @@ class IndexPageTestsWithStaticHashedStorageTests(StaticHashedStorageTestsMixin, 
 class IndexPageTestsWithStaticHashedStorageWithManifestTests(StaticHashedStorageTestsMixin, SimpleTestCase):
     @classmethod
     def setUpClass(cls):
-        super().setUpClass()
+        super(IndexPageTestsWithStaticHashedStorageWithManifestTests, cls).setUpClass()
         with mock.patch.object(StaticHashedCloudinaryStorage, '_upload'):
             execute_command('collectstatic', '--noinput')
             with open(cls.manifest_path) as f:

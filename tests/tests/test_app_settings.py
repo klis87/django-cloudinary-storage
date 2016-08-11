@@ -1,4 +1,4 @@
-from importlib import reload
+from django.utils.six.moves import reload_module as reload
 
 from django.test import SimpleTestCase
 from django.core.exceptions import ImproperlyConfigured

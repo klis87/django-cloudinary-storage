@@ -1,5 +1,6 @@
 from uuid import uuid4
 import os
+import errno
 
 from django.contrib.staticfiles.storage import HashedFilesMixin
 from django.core.files import File
@@ -40,13 +41,23 @@ class StaticHashedStorageTestsMixin(object):
         content.close()
         name = StaticHashedCloudinaryStorage.manifest_name
         cls.manifest_path = os.path.join(app_settings.STATICFILES_MANIFEST_ROOT, name)
-        super().setUpClass()
+        super(StaticHashedStorageTestsMixin, cls).setUpClass()
 
     @classmethod
     def tearDownClass(cls):
         try:
             os.remove(cls.manifest_path)
-        except FileNotFoundError:
-            pass
-        super().tearDownClass()
+        except (IOError, OSError) as e:
+            if e.errno != errno.ENOENT:
+                raise
+        super(StaticHashedStorageTestsMixin, cls).tearDownClass()
         StaticHashedCloudinaryStorage.manifest_name = 'staticfiles.json'
+
+
+def import_mock():
+    try:
+        from unittest import mock
+    except ImportError:
+        import mock
+    finally:
+        return mock

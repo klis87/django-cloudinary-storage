@@ -1,4 +1,4 @@
-from unittest import mock
+import errno
 import os.path
 
 from requests.exceptions import HTTPError
@@ -8,7 +8,9 @@ from django.conf import settings
 
 from cloudinary_storage.storage import MediaCloudinaryStorage, ManifestCloudinaryStorage, StaticCloudinaryStorage
 from cloudinary_storage import app_settings
-from tests.tests.test_helpers import get_random_name
+from tests.tests.test_helpers import get_random_name, import_mock
+
+mock = import_mock()
 
 TAG = get_random_name()
 
@@ -16,7 +18,7 @@ TAG = get_random_name()
 class CloudinaryMediaStorageTests(SimpleTestCase):
     @classmethod
     def setUpClass(cls):
-        super().setUpClass()
+        super(CloudinaryMediaStorageTests, cls).setUpClass()
         cls.file_content = b'Content of file'
         cls.storage = MediaCloudinaryStorage(tag=TAG, resource_type='raw')
         cls.file_name, cls.file = cls.upload_file()
@@ -107,6 +109,7 @@ class CloudinaryMediaStorageTests(SimpleTestCase):
 
     @classmethod
     def tearDownClass(cls):
+        super(CloudinaryMediaStorageTests, cls).tearDownClass()
         cls.storage.delete(cls.file_name)
 
 
@@ -122,14 +125,15 @@ class ManifestCloudinaryStorageTests(SimpleTestCase):
         finally:
             try:
                 os.remove(expected_path)
-            except FileNotFoundError:
-                pass
+            except (IOError, OSError) as e:
+                if e.errno != errno.ENOENT:
+                    raise
 
 
 class StaticCloudinaryStorageTests(SimpleTestCase):
     @classmethod
     def setUpClass(cls):
-        super().setUpClass()
+        super(StaticCloudinaryStorageTests, cls).setUpClass()
         cls.storage = StaticCloudinaryStorage(tag=get_random_name())
         cls.name = get_random_name()
         cls.content = b'some content'
@@ -159,4 +163,5 @@ class StaticCloudinaryStorageTests(SimpleTestCase):
 
     @classmethod
     def tearDownClass(cls):
+        super(StaticCloudinaryStorageTests, cls).tearDownClass()
         cls.storage.delete(cls.name)

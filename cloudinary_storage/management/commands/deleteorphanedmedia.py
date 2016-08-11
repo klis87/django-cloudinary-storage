@@ -3,6 +3,7 @@ from itertools import chain
 from django.core.management.base import BaseCommand
 from django.apps import apps
 from django.db import models
+from django.utils.six.moves import input
 
 from cloudinary_storage.helpers import get_resources
 from cloudinary_storage.storage import storages_per_type

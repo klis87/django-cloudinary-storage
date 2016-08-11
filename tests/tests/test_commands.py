@@ -1,4 +1,3 @@
-from unittest import mock
 import os
 
 from django.core.files.base import ContentFile
@@ -12,7 +11,10 @@ from cloudinary_storage.storage import (MediaCloudinaryStorage, RawMediaCloudina
                                         StaticHashedCloudinaryStorage, RESOURCE_TYPES)
 from cloudinary_storage import app_settings
 from tests.models import TestModel, TestImageModel, TestModelWithoutFile
-from tests.tests.test_helpers import get_random_name, set_media_tag, execute_command, StaticHashedStorageTestsMixin
+from tests.tests.test_helpers import (get_random_name, set_media_tag, execute_command, StaticHashedStorageTestsMixin,
+    import_mock)
+
+mock = import_mock()
 
 DEFAULT_MEDIA_TAG = app_settings.MEDIA_TAG
 
@@ -20,7 +22,7 @@ DEFAULT_MEDIA_TAG = app_settings.MEDIA_TAG
 class BaseOrphanedMediaCommandTestsMixin(object):
     @classmethod
     def setUpClass(cls):
-        super().setUpClass()
+        super(BaseOrphanedMediaCommandTestsMixin, cls).setUpClass()
         set_media_tag(get_random_name())
         TestModelWithoutFile.objects.create(name='without file')
         TestModel.objects.create(name='without file')
@@ -45,7 +47,7 @@ class BaseOrphanedMediaCommandTestsMixin(object):
 
     @classmethod
     def tearDownClass(cls):
-        super().tearDownClass()
+        super(BaseOrphanedMediaCommandTestsMixin, cls).tearDownClass()
         raw_storage = RawMediaCloudinaryStorage()
         raw_storage.delete(cls.file)
         raw_storage.delete(cls.file_2)
@@ -115,7 +117,7 @@ class DeleteOrphanedMediaCommandPromptTests(TestCase):
                                return_value={'1', '2', '3'}):
             with mock.patch.object(DeleteOrphanedMediaCommand,
                                    'delete_orphaned_files'):
-                with mock.patch('builtins.input', return_value='yes'):
+                with mock.patch('cloudinary_storage.management.commands.deleteorphanedmedia.input', return_value='yes'):
                     output = execute_command('deleteorphanedmedia')
                     self.assertIn('3 files have been deleted successfully.', output)
 
@@ -123,7 +125,7 @@ class DeleteOrphanedMediaCommandPromptTests(TestCase):
         with mock.patch.object(DeleteOrphanedMediaCommand,
                                'get_flattened_files_to_remove',
                                return_value={'1'}):
-            with mock.patch('builtins.input', return_value='no'):
+            with mock.patch('cloudinary_storage.management.commands.deleteorphanedmedia.input', return_value='no'):
                 output = execute_command('deleteorphanedmedia')
                 self.assertIn('As ordered, no file has been deleted.', output)
 
@@ -177,7 +179,7 @@ class CollectStaticCommandWithHashedStorageTests(SimpleTestCase):
 class DeleteRedundantStaticCommandTests(StaticHashedStorageTestsMixin, SimpleTestCase):
     @classmethod
     def setUpClass(cls):
-        super().setUpClass()
+        super(DeleteRedundantStaticCommandTests, cls).setUpClass()
         with mock.patch.object(StaticHashedCloudinaryStorage, '_upload'):
             execute_command('collectstatic', '--noinput')
 

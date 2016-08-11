@@ -14,6 +14,7 @@ from django.conf import settings
 from django.contrib.staticfiles.storage import HashedFilesMixin, ManifestFilesMixin
 from django.contrib.staticfiles import finders
 from django.utils.six.moves.urllib.parse import urlsplit, urlunsplit, unquote
+from django.utils.six import get_method_function, PY3
 
 from . import app_settings
 from .helpers import get_resources_by_path
@@ -126,13 +127,14 @@ class StaticCloudinaryStorage(MediaCloudinaryStorage):
     def url(self, name):
         if settings.DEBUG:
             return settings.STATIC_URL + name
-        return super().url(name)
+        return super(StaticCloudinaryStorage, self).url(name)
 
     def _upload(self, name, content):
         return cloudinary.uploader.upload(content, public_id=name, resource_type=self.RESOURCE_TYPE,
                                           invalidate=True, tags=self.TAG)
 
-    file_hash = HashedFilesMixin.file_hash  # we only need 1 method, so we do this instead of subclassing
+    # we only need 1 method of HashedFilesMixin, so we do this instead of subclassing
+    file_hash = HashedFilesMixin.file_hash if PY3 else get_method_function(HashedFilesMixin.file_hash)
 
     def _exists_with_etag(self, name, content):
         url = self._get_url(name)
@@ -148,20 +150,20 @@ class StaticCloudinaryStorage(MediaCloudinaryStorage):
             return name
         else:
             content.seek(0)
-            super()._save(name, content)
+            super(StaticCloudinaryStorage, self)._save(name, content)
             return name
 
 
 class ManifestCloudinaryStorage(FileSystemStorage):
     def __init__(self, location=None, base_url=None, *args, **kwargs):
         location = app_settings.STATICFILES_MANIFEST_ROOT
-        super().__init__(location, base_url, *args, **kwargs)
+        super(ManifestCloudinaryStorage, self).__init__(location, base_url, *args, **kwargs)
 
 
 class HashCloudinaryMixin(object):
     def __init__(self, *args, **kwargs):
         self.manifest_storage = ManifestCloudinaryStorage()
-        super().__init__(*args, **kwargs)
+        super(HashCloudinaryMixin, self).__init__(*args, **kwargs)
 
     def hashed_name(self, name, content=None):
         parsed_name = urlsplit(unquote(name))
@@ -195,7 +197,7 @@ class HashCloudinaryMixin(object):
     def post_process(self, paths, dry_run=False, **options):
         original_delete = self.delete
         self.delete = lambda name: None  # temporarily overwritten to prevent any deletion in post_process
-        for response in super().post_process(paths, dry_run, **options):
+        for response in super(HashCloudinaryMixin, self).post_process(paths, dry_run, **options):
             yield response
         self.delete = original_delete
 

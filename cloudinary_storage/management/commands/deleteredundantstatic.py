@@ -1,4 +1,5 @@
 from django.core.management import CommandError
+from django.utils.six import PY3
 
 from cloudinary_storage.storage import StaticHashedCloudinaryStorage, RESOURCE_TYPES
 from cloudinary_storage import app_settings
@@ -11,13 +12,13 @@ class Command(deleteorphanedmedia.Command):
     TAG = app_settings.STATIC_TAG
 
     def add_arguments(self, parser):
-        super().add_arguments(parser)
+        super(Command, self).add_arguments(parser)
         parser.add_argument('--delete-unhashed-files', action='store_true', dest='delete_unhashed_files',
                             help='Delete needless unhashed files as well. '
                                  'Use only when you used collectstatic with --upload-unhashed-files option.')
 
     def set_options(self, **options):
-        super().set_options(**options)
+        super(Command, self).set_options(**options)
         self.delete_unhashed_files = options['delete_unhashed_files']
 
     def get_resource_types(self):
@@ -31,9 +32,12 @@ class Command(deleteorphanedmedia.Command):
         if self.delete_unhashed_files:
             return set(manifest.values())
         else:
-            return set(manifest.keys() | manifest.values())
+            if PY3:
+                return set(manifest.keys() | manifest.values())
+            else:
+                return set(manifest.keys() + manifest.values())
 
     def handle(self, *args, **options):
         if self.storage.read_manifest() is None:
             raise CommandError('Command requires staticfiles.json. Run collectstatic first and try again.')
-        super().handle(*args, **options)
+        super(Command, self).handle(*args, **options)
