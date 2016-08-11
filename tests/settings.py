@@ -52,9 +52,9 @@ STATIC_URL = '/static/'
 STATICFILES_STORAGE = 'cloudinary_storage.storage.StaticHashedCloudinaryStorage'
 
 CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': 'my-cloud-name',
-    'API_KEY': 'my-api-key',
-    'API_SECRET': 'my-api-secret'
+    'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME', 'my-cloud-name'),
+    'API_KEY': os.getenv('CLOUDINARY_API_KEY', 'my-api-key'),
+    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET', 'my-api-secret')
 }
 
 LOGGING = {
