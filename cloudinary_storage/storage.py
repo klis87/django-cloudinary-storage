@@ -1,5 +1,6 @@
 import json
 import os
+import errno
 
 import cloudinary
 import cloudinary.uploader
@@ -174,9 +175,13 @@ class HashCloudinaryMixin(object):
         if content is None:
             absolute_path = finders.find(clean_name)
             try:
-                content = File(open(absolute_path, 'rb'))
-            except FileNotFoundError:
-                raise ValueError("The file '%s' could not be found with %r." % (clean_name, self))
+                content = open(absolute_path, 'rb')
+            except (IOError, OSError) as e:
+                if e.errno == errno.ENOENT:
+                    raise ValueError("The file '%s' could not be found with %r." % (clean_name, self))
+                else:
+                    raise
+            content = File(content)
             opened = True
         try:
             file_hash = self.file_hash(clean_name, content)

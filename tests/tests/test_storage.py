@@ -6,7 +6,8 @@ from django.test import SimpleTestCase, override_settings
 from django.core.files.base import ContentFile
 from django.conf import settings
 
-from cloudinary_storage.storage import MediaCloudinaryStorage, ManifestCloudinaryStorage, StaticCloudinaryStorage
+from cloudinary_storage.storage import (MediaCloudinaryStorage, ManifestCloudinaryStorage, StaticCloudinaryStorage,
+    HashCloudinaryMixin)
 from cloudinary_storage import app_settings
 from tests.tests.test_helpers import get_random_name, import_mock
 
@@ -165,3 +166,13 @@ class StaticCloudinaryStorageTests(SimpleTestCase):
     def tearDownClass(cls):
         super(StaticCloudinaryStorageTests, cls).tearDownClass()
         cls.storage.delete(cls.name)
+
+
+class HashCloudinaryMixinTests(SimpleTestCase):
+    @mock.patch('cloudinary_storage.storage.finders.find')
+    def test_hashed_name_raises_error_when_file_not_found(self, find_mock):
+        storage = HashCloudinaryMixin()
+        not_existing_file = get_random_name()
+        find_mock.return_value = not_existing_file
+        with self.assertRaises(ValueError):
+            storage.hashed_name(not_existing_file)
