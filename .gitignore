@@ -2,3 +2,9 @@
 __pycache__
 env
 .idea
+.tox
+.coverage
+manifest
+db.sqlite3
+*.egg-info
+htmlcov
