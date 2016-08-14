@@ -35,7 +35,7 @@ class BaseOrphanedMediaCommandTestsMixin(object):
         cls.file_removed_2 = image_model_instance.file.name
         cls.add_file_to_model(image_model_instance)
         cls.file_3 = image_model_instance.file.name
-        image = ImageFile(open('tests/dummy-files/dummy-image.jpg', 'rb'))
+        image = ImageFile(open(os.path.join('tests', 'dummy-files', 'dummy-image.jpg'), 'rb'))
         image_model_instance.image.save(get_random_name(), image)
         cls.file_4 = image_model_instance.image.name
 
@@ -130,7 +130,7 @@ class DeleteOrphanedMediaCommandPromptTests(TestCase):
                 self.assertIn('As ordered, no file has been deleted.', output)
 
 
-STATIC_FILES = ('tests/css/style.css', 'tests/css/font.css')
+STATIC_FILES = (os.path.join('tests', 'css', 'style.css'), os.path.join('tests', 'css', 'font.css'))
 
 
 @override_settings(STATICFILES_STORAGE='cloudinary_storage.storage.StaticCloudinaryStorage')

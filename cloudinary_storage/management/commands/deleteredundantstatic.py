@@ -33,9 +33,10 @@ class Command(deleteorphanedmedia.Command):
             return set(manifest.values())
         else:
             if PY3:
-                return set(manifest.keys() | manifest.values())
+                needful_files = set(manifest.keys() | manifest.values())
             else:
-                return set(manifest.keys() + manifest.values())
+                needful_files = set(manifest.keys() + manifest.values())
+            return {self.storage.clean_name(file) for file in needful_files}
 
     def handle(self, *args, **options):
         if self.storage.read_manifest() is None:

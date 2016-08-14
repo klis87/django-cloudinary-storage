@@ -1,3 +1,5 @@
+import os
+
 from django.test import TestCase
 from django.core.files.base import ContentFile
 from django.core.files import File
@@ -27,7 +29,7 @@ class TestModelTests(TestCase):
 class TestVideoModelTests(TestCase):
     def test_video_can_be_uploaded(self):
         file_name = get_random_name()
-        video = File(open('tests/dummy-files/dummy-video.mp4', 'rb'))
+        video = File(open(os.path.join('tests', 'dummy-files', 'dummy-video.mp4'), 'rb'))
         model = TestVideoModel(name='name')
         model.video.save(file_name, video)
         model.full_clean()

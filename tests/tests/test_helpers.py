@@ -33,10 +33,10 @@ class StaticHashedStorageTestsMixin(object):
     def setUpClass(cls):
         StaticHashedCloudinaryStorage.manifest_name = get_random_name()
         hash_mixin = HashedFilesMixin()
-        content = File(open('tests/static/tests/css/style.css', 'rb'))
+        content = File(open(os.path.join('tests', 'static', 'tests', 'css', 'style.css'), 'rb'))
         cls.style_hash = hash_mixin.file_hash('tests/css/style.css', content)
         content.close()
-        content = File(open('tests/static/tests/css/font.css', 'rb'))
+        content = File(open(os.path.join('tests', 'static', 'tests', 'css', 'font.css'), 'rb'))
         cls.font_hash = hash_mixin.file_hash('tests/css/font.css', content)
         content.close()
         name = StaticHashedCloudinaryStorage.manifest_name

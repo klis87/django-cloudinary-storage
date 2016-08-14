@@ -133,8 +133,9 @@ class StaticCloudinaryStorage(MediaCloudinaryStorage):
         return cloudinary.uploader.upload(content, public_id=name, resource_type=self.RESOURCE_TYPE,
                                           invalidate=True, tags=self.TAG)
 
-    # we only need 1 method of HashedFilesMixin, so we do this instead of subclassing
+    # we only need 2 method of HashedFilesMixin, so we just copy them as functions to avoid MRO complexities
     file_hash = HashedFilesMixin.file_hash if PY3 else get_method_function(HashedFilesMixin.file_hash)
+    clean_name = HashedFilesMixin.clean_name if PY3 else get_method_function(HashedFilesMixin.clean_name)
 
     def _exists_with_etag(self, name, content):
         url = self._get_url(name)
@@ -146,6 +147,7 @@ class StaticCloudinaryStorage(MediaCloudinaryStorage):
         return etag.startswith(hash)
 
     def _save(self, name, content):
+        name = self.clean_name(name)
         if self._exists_with_etag(name, content):
             return name
         else:
@@ -210,6 +212,12 @@ class HashCloudinaryMixin(object):
 
     def save_manifest(self):
         payload = {'paths': self.hashed_files, 'version': self.manifest_version}
+        if os.name == 'nt':
+            paths = payload['paths']
+            for path in paths:
+                if '\\' in path:
+                    clean_path = self.clean_name(path)
+                    paths[clean_path] = paths[path]
         if self.manifest_storage.exists(self.manifest_name):
             self.manifest_storage.delete(self.manifest_name)
         contents = json.dumps(payload).encode('utf-8')
