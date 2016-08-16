@@ -13,13 +13,14 @@ class Command(deleteorphanedmedia.Command):
 
     def add_arguments(self, parser):
         super(Command, self).add_arguments(parser)
-        parser.add_argument('--delete-unhashed-files', action='store_true', dest='delete_unhashed_files',
-                            help='Delete needless unhashed files as well. '
-                                 'Use only when you used collectstatic with --upload-unhashed-files option.')
+        parser.add_argument('--keep-unhashed-files', action='store_true', dest='keep_unhashed_files',
+                            help='Keeps used unhashed files untouched. '
+                                 'Without it all unhashed files will be always deleted.'
+                                 'Use only when you run collectstatic with --upload-unhashed-files option.')
 
     def set_options(self, **options):
         super(Command, self).set_options(**options)
-        self.delete_unhashed_files = options['delete_unhashed_files']
+        self.keep_unhashed_files = options['keep_unhashed_files']
 
     def get_resource_types(self):
         """
@@ -36,14 +37,14 @@ class Command(deleteorphanedmedia.Command):
         Assumes that manifest staticfiles.json is up-to-date.
         """
         manifest = self.storage.load_manifest()
-        if self.delete_unhashed_files:
-            return set(manifest.values())
-        else:
+        if self.keep_unhashed_files:
             if PY3:
                 needful_files = set(manifest.keys() | manifest.values())
             else:
                 needful_files = set(manifest.keys() + manifest.values())
             return {self.storage.clean_name(file) for file in needful_files}
+        else:
+            return set(manifest.values())
 
     def handle(self, *args, **options):
         if self.storage.read_manifest() is None:

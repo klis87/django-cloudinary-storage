@@ -192,22 +192,22 @@ class DeleteRedundantStaticCommandTests(StaticHashedStorageTestsMixin, SimpleTes
         command = DeleteRedundantStaticCommand()
         self.assertEqual(command.get_exclude_paths(), ())
 
-    def test_get_needful_files_with_delete_unhashed_files_true(self):
+    def test_get_needful_files_with_keep_unhashed_files_true(self):
         command = DeleteRedundantStaticCommand()
-        command.delete_unhashed_files = True
-        expected_response = {
-            'tests/css/style.{}.css'.format(self.style_hash),
-            'tests/css/font.{}.css'.format(self.font_hash)
-        }
-        self.assertEqual(command.get_needful_files(), expected_response)
-
-    def test_get_needful_files_with_delete_unhashed_files_false(self):
-        command = DeleteRedundantStaticCommand()
-        command.delete_unhashed_files = False
+        command.keep_unhashed_files = True
         expected_response = {
             'tests/css/style.css',
             'tests/css/style.{}.css'.format(self.style_hash),
             'tests/css/font.css',
+            'tests/css/font.{}.css'.format(self.font_hash)
+        }
+        self.assertEqual(command.get_needful_files(), expected_response)
+
+    def test_get_needful_files_with_keep_unhashed_files_false(self):
+        command = DeleteRedundantStaticCommand()
+        command.keep_unhashed_files = False
+        expected_response = {
+            'tests/css/style.{}.css'.format(self.style_hash),
             'tests/css/font.{}.css'.format(self.font_hash)
         }
         self.assertEqual(command.get_needful_files(), expected_response)
