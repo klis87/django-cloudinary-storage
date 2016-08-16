@@ -7,7 +7,7 @@ from django.core.files.base import ContentFile
 from django.conf import settings
 
 from cloudinary_storage.storage import (MediaCloudinaryStorage, ManifestCloudinaryStorage, StaticCloudinaryStorage,
-    HashCloudinaryMixin)
+    StaticHashedCloudinaryStorage)
 from cloudinary_storage import app_settings
 from tests.tests.test_helpers import get_random_name, import_mock
 
@@ -168,11 +168,29 @@ class StaticCloudinaryStorageTests(SimpleTestCase):
         cls.storage.delete(cls.name)
 
 
-class HashCloudinaryMixinTests(SimpleTestCase):
+class StaticHashedCloudinaryStorageTests(SimpleTestCase):
     @mock.patch('cloudinary_storage.storage.finders.find')
     def test_hashed_name_raises_error_when_file_not_found(self, find_mock):
-        storage = HashCloudinaryMixin()
+        storage = StaticHashedCloudinaryStorage()
         not_existing_file = get_random_name()
         find_mock.return_value = not_existing_file
         with self.assertRaises(ValueError):
             storage.hashed_name(not_existing_file)
+
+    def test_existing_manifest_is_deleted_before_new_is_saved(self):
+        storage = StaticHashedCloudinaryStorage()
+        with mock.patch.object(storage, 'manifest_storage') as manifest_storage_mock:
+            manifest_storage_mock.exists.return_value = True
+            storage.save_manifest()
+        manifest_storage_mock.delete.assert_called_once_with('staticfiles.json')
+
+    def test_add_unix_path_keys_to_paths(self):
+        storage = StaticHashedCloudinaryStorage()
+        paths = {
+            'dir/1': 1,
+            'dir\\2': 2
+        }
+        expected_paths = paths.copy()
+        expected_paths['dir/2'] = 2
+        storage.add_unix_path_keys_to_paths(paths)
+        self.assertEqual(paths, expected_paths)

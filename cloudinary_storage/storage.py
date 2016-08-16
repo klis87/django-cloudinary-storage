@@ -235,14 +235,17 @@ class HashCloudinaryMixin(object):
         except IOError:
             return None
 
+    def add_unix_path_keys_to_paths(self, paths):
+        for path in paths.copy():
+            if '\\' in path:
+                clean_path = self.clean_name(path)
+                paths[clean_path] = paths[path]
+
     def save_manifest(self):
         payload = {'paths': self.hashed_files, 'version': self.manifest_version}
         if os.name == 'nt':
             paths = payload['paths']
-            for path in paths:
-                if '\\' in path:
-                    clean_path = self.clean_name(path)
-                    paths[clean_path] = paths[path]
+            self.add_unix_path_keys_to_paths(paths)
         if self.manifest_storage.exists(self.manifest_name):
             self.manifest_storage.delete(self.manifest_name)
         contents = json.dumps(payload).encode('utf-8')
