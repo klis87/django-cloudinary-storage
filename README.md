@@ -2,7 +2,7 @@ Django Cloudinary Storage
 =========================
 
 Django Cloudinary Storage is a Django package that facilitates integration with [Cloudinary](http://cloudinary.com/)
-by implementing [Django Storage Api](https://docs.djangoproject.com/en/1.10/howto/custom-file-storage/).
+by implementing [Django Storage API](https://docs.djangoproject.com/en/1.10/howto/custom-file-storage/).
 With several lines of configuration, you can start using Cloudinary for both media and static files.
 Also, it provides management commands for removing unnecessary files, so any cleanup will be a breeze.
 It uses [pycloudinary](https://github.com/cloudinary/pycloudinary) package under the hood.
@@ -161,7 +161,7 @@ import os
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-CLOUDINARY_STORAGE {
+CLOUDINARY_STORAGE = {
     # other settings, like credentials
     'STATICFILES_MANIFEST_ROOT': os.path.join(BASE_DIR, 'my-manifest-directory')
 }
@@ -177,3 +177,43 @@ In Django 1.10 and later, you could use `{% load static %}` instead of `{% load 
 
 Please note that you must set `DEBUG` to `False` to fetch static files from Cloudinary. With `DEBUG` equal to `True`,
 Django `staticfiles` app will use your local files for easier and faster development.
+
+Management commands
+-------------------
+
+The package provides three management commands:
+- `collectstatic`
+- `deleteorphanedmedia`
+- `deleteredundantstatic`
+
+### collectstatic
+
+Adds minor modifications to Django `collectstatic` to improve upload performance. It uploads only hashed files as the default. Also, it uploads a file only when necessary, namely it won't upload the file if a file with the same name and content will be already uploaded to Cloudinary, which will save both time and bandwidth.
+
+Optional arguments:
+- `--upload-unhashed-files` - uploads files without hash added to their name along with hashed ones, use it only when it is
+really necessary
+- `--noinput` - non-interactive mode, the command won't ask you to do any confirmations
+
+### deleteorphanedmedia
+
+Deletes needless media files, which are not connected to any model. It is possible to provide paths to prevent deletion
+of given files in `EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS` in `settings.py`, for example:
+```python
+CLOUDINARY_STORAGE = {
+    # other settings
+    'EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS': ('path/', 'second-path/')
+}
+```
+
+Optional arguments:
+- `--noinput` - non-interactive mode, the command won't ask you to do any confirmations
+
+### deleteredundantstatic
+
+Deletes needless static files.
+
+Optional arguments:
+- `--keep-unhashed-files` - use it if you use `collectstatic` with `--upload-unhashed-files` argument,
+without it this command will always delete all unhashed files
+- `--noinput` - non-interactive mode, the command won't ask you to do any confirmations
