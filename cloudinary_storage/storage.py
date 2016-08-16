@@ -122,6 +122,12 @@ storages_per_type = {
 
 
 class StaticCloudinaryStorage(MediaCloudinaryStorage):
+    """
+    Base storage for staticfiles kept in Cloudinary.
+    Uploads only unhashed files, so it is highly unrecommended to use it directly,
+    because static files are cached both by Cloudinary CDN and browsers
+    and changing files could become problematic.
+    """
     RESOURCE_TYPE = RESOURCE_TYPES['RAW']
     TAG = app_settings.STATIC_TAG
 
@@ -134,11 +140,15 @@ class StaticCloudinaryStorage(MediaCloudinaryStorage):
         return cloudinary.uploader.upload(content, public_id=name, resource_type=self.RESOURCE_TYPE,
                                           invalidate=True, tags=self.TAG)
 
-    # we only need 2 method of HashedFilesMixin, so we just copy them as functions to avoid MRO complexities
+    # we only need 2 method of HashedFilesMixin, so we just copy them as function objects to avoid MRO complexities
     file_hash = HashedFilesMixin.file_hash if PY3 else get_method_function(HashedFilesMixin.file_hash)
     clean_name = HashedFilesMixin.clean_name if PY3 else get_method_function(HashedFilesMixin.clean_name)
 
     def _exists_with_etag(self, name, content):
+        """
+        Checks whether a file with a name and a content is already uploaded to Cloudinary.
+        Uses ETAG header and MD5 hash for the content comparison.
+        """
         url = self._get_url(name)
         response = requests.head(url)
         if response.status_code == 404:
@@ -148,7 +158,10 @@ class StaticCloudinaryStorage(MediaCloudinaryStorage):
         return etag.startswith(hash)
 
     def _save(self, name, content):
-        name = self.clean_name(name)
+        """
+        Saves only when a file with a name and a content is not already uploaded to Cloudinary.
+        """
+        name = self.clean_name(name)  # to change to UNIX style path on windows if necessary
         if self._exists_with_etag(name, content):
             return name
         else:
@@ -158,8 +171,15 @@ class StaticCloudinaryStorage(MediaCloudinaryStorage):
 
 
 class ManifestCloudinaryStorage(FileSystemStorage):
+    """
+    Storage for manifest file which will keep map of hashed paths.
+    Subclasses FileSystemStorage, so the manifest file is kept locally.
+    It is highly recommended to keep the manifest in your version control system,
+    then you are guaranteed the manifest will be used in all production environment,
+    including Heroku and AWS Elastic Beanstalk.
+    """
     def __init__(self, location=None, base_url=None, *args, **kwargs):
-        location = app_settings.STATICFILES_MANIFEST_ROOT
+        location = app_settings.STATICFILES_MANIFEST_ROOT if location is None else location
         super(ManifestCloudinaryStorage, self).__init__(location, base_url, *args, **kwargs)
 
 

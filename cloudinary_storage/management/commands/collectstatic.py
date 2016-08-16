@@ -13,9 +13,17 @@ class Command(collectstatic.Command):
         self.upload_unhashed_files = options['upload_unhashed_files']
 
     def delete_file(self, path, prefixed_path, source_storage):
+        """
+        Overwritten to prevent any deletion during command execution.
+        Unnecessary static files can be deleted with 'deleteredundantstatic' command.
+        """
         return True
 
     def copy_file(self, path, prefixed_path, source_storage):
+        """
+        Overwritten to execute only with --upload-unhashed-files param or StaticCloudinaryStorage.
+        Otherwise only hashed files will be uploaded during postprocessing.
+        """
         if (settings.STATICFILES_STORAGE == 'cloudinary_storage.storage.StaticCloudinaryStorage' or
                 self.upload_unhashed_files):
             super(Command, self).copy_file(path, prefixed_path, source_storage)

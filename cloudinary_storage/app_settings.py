@@ -25,7 +25,9 @@ cloudinary.config(
 MEDIA_TAG = user_settings.get('MEDIA_TAG', 'media')
 INVALID_VIDEO_ERROR_MESSAGE = user_settings.get('INVALID_VIDEO_ERROR_MESSAGE', 'Please upload a valid video file.')
 EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS = user_settings.get('EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS', ())
-MAGIC_FILE_PATH = user_settings.get('MAGIC_FILE_PATH', 'magic')
 
-STATICFILES_MANIFEST_ROOT = user_settings.get('STATICFILES_MANIFEST_ROOT', os.path.join(BASE_DIR, 'manifest'))
 STATIC_TAG = user_settings.get('STATIC_TAG', 'static')
+STATICFILES_MANIFEST_ROOT = user_settings.get('STATICFILES_MANIFEST_ROOT', os.path.join(BASE_DIR, 'manifest'))
+
+# used only on Windows, see https://github.com/ahupp/python-magic#dependencies for your reference
+MAGIC_FILE_PATH = user_settings.get('MAGIC_FILE_PATH', 'magic')

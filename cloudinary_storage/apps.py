@@ -1,5 +1,5 @@
 from django.apps import AppConfig
 
 
-class DjangoCloudinaryStorageConfig(AppConfig):
+class CloudinaryStorageConfig(AppConfig):
     name = 'cloudinary_storage'

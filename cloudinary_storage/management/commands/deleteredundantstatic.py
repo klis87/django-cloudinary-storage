@@ -22,12 +22,19 @@ class Command(deleteorphanedmedia.Command):
         self.delete_unhashed_files = options['delete_unhashed_files']
 
     def get_resource_types(self):
+        """
+        Overwritten as all static files are of raw resource type.
+        """
         return {RESOURCE_TYPES['RAW']}
 
     def get_exclude_paths(self):
         return ()
 
     def get_needful_files(self):
+        """
+        Returns currently used static files.
+        Assumes that manifest staticfiles.json is up-to-date.
+        """
         manifest = self.storage.load_manifest()
         if self.delete_unhashed_files:
             return set(manifest.values())
@@ -40,5 +47,5 @@ class Command(deleteorphanedmedia.Command):
 
     def handle(self, *args, **options):
         if self.storage.read_manifest() is None:
-            raise CommandError('Command requires staticfiles.json. Run collectstatic first and try again.')
+            raise CommandError('Command requires staticfiles.json. Run collectstatic command first and try again.')
         super(Command, self).handle(*args, **options)

@@ -22,14 +22,24 @@ class Command(BaseCommand):
         self.no_input = options['no_input']
 
     def models(self):
+        """
+        Gets all registered models.
+        """
         return apps.get_models()
 
     def model_file_fields(self, model):
+        """
+        Generator yielding all instances of FileField and its subclasses of a model.
+        """
         for field in model._meta.fields:
             if isinstance(field, models.FileField):
                 yield field
 
     def get_resource_types(self):
+        """
+        Returns set of resource types of FileFields of all registered models.
+        Needed by Cloudinary as resource type is needed to browse or delete specific files.
+        """
         resource_types = set()
         for model in self.models():
             for field in self.model_file_fields(model):
@@ -38,6 +48,10 @@ class Command(BaseCommand):
         return resource_types
 
     def get_needful_files(self):
+        """
+        Returns set of media files associated with models.
+        Those files won't be deleted.
+        """
         needful_files = []
         for model in self.models():
             media_fields = []
@@ -53,6 +67,10 @@ class Command(BaseCommand):
         return app_settings.EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS
 
     def get_files_to_remove(self):
+        """
+        Returns orphaned media files to be removed grouped by resource type.
+        All files which paths start with any of exclude paths are ignored.
+        """
         files_to_remove = {}
         needful_files = self.get_needful_files()
         for resources_type in self.get_resource_types():
