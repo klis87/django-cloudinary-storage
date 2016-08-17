@@ -6,6 +6,23 @@ by implementing [Django Storage API](https://docs.djangoproject.com/en/1.10/howt
 With several lines of configuration, you can start using Cloudinary for both media and static files.
 Also, it provides management commands for removing unnecessary files, so any cleanup will be a breeze.
 It uses [pycloudinary](https://github.com/cloudinary/pycloudinary) package under the hood.
+</div>
+
+Table of content:
+-----------------
+
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Usage with media files](#usage-with-media-files)
+    - [Usage with raw files](#usage-with-raw-files)
+    - [Usage with video files](#usage-with-video-files)
+- [Usage with static files](#usage-with-static-files)
+- [Management commands](#management-commands)
+    - [collectstatic](#collectstatic)
+    - [deleteorphanedmedia](#deleteorphanedmedia)
+    - [deleteredundantstatic](#deleteredundantstatic)
+- [Settings](#settings)
+- [How to run tests](#how-to-run-tests)
 
 Requirements
 ------------
