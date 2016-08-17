@@ -41,14 +41,14 @@ If you need to upload any video files, run:
 ```
 $ pip install django-cloudinary-storage[video]
 ```
-which will install [python-magic](https://github.com/ahupp/python-magic) for uploaded video validation.
+which will additionally install [python-magic](https://github.com/ahupp/python-magic) for uploaded video validation.
 
 Also, in case you use Django `ImageField`, make sure you have Pillow installed:
 ```
 $ pip install Pillow
 ```
 
-Once you have done that, add cloudinary_storage to you installed apps in your `settings.py`:
+Once you have done that, add `cloudinary` and `cloudinary_storage` to you installed apps in your `settings.py`:
 ```python
 INSTALLED_APPS = [
     # ...
@@ -86,7 +86,7 @@ class TestModel(models.Model):
     name = models.CharField(max_length=100)
     image = models.ImageField(upload_to='images/', blank=True)
 ```
-All you need to do is to add 1 line to `settings.py`:
+All you need to do is to add one line to `settings.py`:
 ```python
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 ```
@@ -94,7 +94,7 @@ And that's it! All your models with `ImageField` will be connected to Cloudinary
 
 Now, in order to put this image into your template, you can just type:
 ```django
-<img src="{{ test_model_instance.image.url }}" alt="test model instance image">
+<img src="{{ test_model_instance.image.url }}" alt="{{ test_model_instance.image.name }}">
 ```
 
 However, doing that in this way, the image will be downloaded with its original size, as uploaded by a user. To have more
@@ -145,7 +145,8 @@ from cloudinary_storage.validators import validate_video
 
 class TestModelWithVideoAndImage(models.Model):
     name = models.CharField(max_length=100)
-    video = models.ImageField(upload_to='videos/', blank=True, storage=VideoMediaCloudinaryStorage())
+    video = models.ImageField(upload_to='videos/', blank=True, storage=VideoMediaCloudinaryStorage(),
+                              validators=[validate_video])
     image = models.ImageField(upload_to='images/', blank=True)  # no need to set storage, field will use the default one
 ```
 
@@ -171,7 +172,7 @@ Hashing prevents this issue as any file change will change its url as well, whic
 a new version of a file.
 
 Also, be aware that `collectstatic` will create a JSON file, which shows mapping of unhashed file names to their hashed
-versions. This file will be available at `./manifest/staticfiles.json` directory by default - you could change that
+versions. This file will be available at `./manifest/staticfiles.json` by default - you could change that
 in your `settings.py`, for example:
 ```python
 import os
