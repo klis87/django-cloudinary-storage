@@ -7,7 +7,7 @@ With several lines of configuration, you can start using Cloudinary for both med
 Also, it provides management commands for removing unnecessary files, so any cleanup will be a breeze.
 It uses [pycloudinary](https://github.com/cloudinary/pycloudinary) package under the hood.
 
-Table of content:
+Table of content
 -----------------
 
 - [Requirements](#requirements)
