@@ -85,8 +85,9 @@ class TestModel(models.Model):
     name = models.CharField(max_length=100)
     image = models.ImageField(upload_to='images/', blank=True)
 ```
-All you need to do is to add one line to `settings.py`:
+All you need to do is to add two lines to `settings.py`:
 ```python
+MEDIA_URL = '/media/'  # or any prefix you choose
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 ```
 And that's it! All your models with `ImageField` will be connected to Cloudinary.
