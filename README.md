@@ -217,3 +217,43 @@ Optional arguments:
 - `--keep-unhashed-files` - use it if you use `collectstatic` with `--upload-unhashed-files` argument,
 without it this command will always delete all unhashed files
 - `--noinput` - non-interactive mode, the command won't ask you to do any confirmations
+
+Settings
+--------
+
+Below you can see all available settings with default values:
+```python
+import os
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': None,  # required
+    'API_KEY': None,  # required
+    'API_SECRET': None,  # required
+    'SECURE': True,
+    'MEDIA_TAG': 'media',
+    'INVALID_VIDEO_ERROR_MESSAGE': 'Please upload a valid video file.',
+    'EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS': (),
+    'STATIC_TAG': 'static',
+    'STATICFILES_MANIFEST_ROOT': os.path.join(BASE_DIR, 'manifest'),
+    'MAGIC_FILE_PATH': 'magic'
+}
+```
+`CLOUD_NAME`, `API_KEY` and `API_SECRET` are mandatory and you need to define them in `CLOUDINARY_STORAGE` dictionary
+in `settings.py`, the rest could be overwritten if required, as described below:
+- `SECURE` - whether your Cloudinary files should be server over HTTP or HTTPS, HTTPS is the default, set it to False
+to switch to HTTP
+- `MEDIA_TAG` - name assigned to your all media files, it has to be different than `STATIC_TAG`, usually you don't
+need to worry about this setting, it is useful when you have several websites which use the same Cloudinary acount, when
+you should set it unique to distinguish it from other websites,
+- `INVALID_VIDEO_ERROR_MESSAGE` - error message which will be desplayed in user's form when he tries to upload non-video
+file in video field
+- `EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS` - looked by `deleteorphanedmedia` command, you can provide here tuple/list of paths
+which will never be deleted
+- `STATIC_TAG` - name assigned to your all static files, it has to be different than `MEDIA_TAG`, please see `MEDIA_TAG`
+setting to see when it is useful
+- `STATICFILES_MANIFEST_ROOT` - path where `staticfiles.json` will be saved after `collectstatic` command, `./manifest`
+is the default location
+- `MAGIC_FILE_PATH`: applicable only for Windows, needed for python-magic library for movie validation, please see
+[python-magic](https://github.com/ahupp/python-magic#dependencies) for reference
