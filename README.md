@@ -266,7 +266,7 @@ need to worry about this setting, it is useful when you have several websites wh
 you should set it unique to distinguish it from other websites,
 - `INVALID_VIDEO_ERROR_MESSAGE` - error message which will be desplayed in user's form when he tries to upload non-video
 file in video field
-- `EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS` - looked by `deleteorphanedmedia` command, you can provide here tuple/list of paths
+- `EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS` - looked by `deleteorphanedmedia` command, you can provide here tuple of paths
 which will never be deleted
 - `STATIC_TAG` - name assigned to your all static files, it has to be different than `MEDIA_TAG`, please see `MEDIA_TAG`
 setting to see when it is useful
