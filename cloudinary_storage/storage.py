@@ -57,15 +57,18 @@ class MediaCloudinaryStorage(Storage):
         return cloudinary.uploader.upload(content, **options)
 
     def _save(self, name, content):
+        name = self._prepend_prefix(name)
         content = UploadedFile(content, name)
         response = self._upload(name, content)
         return response['public_id']
 
     def delete(self, name):
+        name = self._prepend_prefix(name)
         response = cloudinary.uploader.destroy(name, invalidate=True, resource_type=self.RESOURCE_TYPE)
         return response['result'] == 'ok'
 
     def _get_url(self, name):
+        name = self._prepend_prefix(name)
         cloudinary_resource = cloudinary.CloudinaryResource(name, default_resource_type=self.RESOURCE_TYPE)
         return cloudinary_resource.url
 
@@ -90,6 +93,16 @@ class MediaCloudinaryStorage(Storage):
         if path != '' and not path.endswith('/'):
             path += '/'
         return path
+
+    def _get_prefix(self):
+        return settings.MEDIA_URL
+
+    def _prepend_prefix(self, name):
+        prefix = self._get_prefix().lstrip('/')
+        prefix = self._normalize_path(prefix)
+        if not name.startswith(prefix):
+            name = prefix + name
+        return name
 
     def listdir(self, path):
         path = self._normalize_path(path)
@@ -168,6 +181,9 @@ class StaticCloudinaryStorage(MediaCloudinaryStorage):
             content.seek(0)
             super(StaticCloudinaryStorage, self)._save(name, content)
             return name
+
+    def _get_prefix(self):
+        return settings.STATIC_URL
 
 
 class ManifestCloudinaryStorage(FileSystemStorage):

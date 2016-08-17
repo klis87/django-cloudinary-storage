@@ -15,7 +15,7 @@ class IndexPageTestsWithUnhashedStaticStorageTests(SimpleTestCase):
 
     def test_urls_with_debug_false(self):
         response = self.client.get('/')
-        self.assertContains(response, '/raw/upload/v1/tests/css/style.css')
+        self.assertContains(response, '/raw/upload/v1/static/tests/css/style.css')
 
 
 @override_settings(STATICFILES_STORAGE='cloudinary_storage.storage.StaticHashedCloudinaryStorage')
@@ -27,7 +27,7 @@ class IndexPageTestsWithStaticHashedStorageTests(StaticHashedStorageTestsMixin, 
 
     def test_urls_with_debug_false(self):
         response = self.client.get('/')
-        self.assertContains(response, '/raw/upload/v1/tests/css/style.{}.css'.format(self.style_hash))
+        self.assertContains(response, '/raw/upload/v1/static/tests/css/style.{}.css'.format(self.style_hash))
 
 
 @override_settings(STATICFILES_STORAGE='cloudinary_storage.storage.StaticHashedCloudinaryStorage')
@@ -47,7 +47,7 @@ class IndexPageTestsWithStaticHashedStorageWithManifestTests(StaticHashedStorage
 
     def test_urls_with_debug_false(self):
         response = self.client.get('/')
-        self.assertContains(response, '/raw/upload/v1/tests/css/style.{}.css'.format(self.style_hash))
+        self.assertContains(response, '/raw/upload/v1/static/tests/css/style.{}.css'.format(self.style_hash))
 
     @mock.patch.object(StaticHashedCloudinaryStorage, 'hashed_name')
     def test_manifest_is_used_in_production(self, hashed_name_mock):

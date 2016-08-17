@@ -96,17 +96,15 @@ class CloudinaryMediaStorageTests(SimpleTestCase):
 
     def test_list_dir(self):
         file_2_name, file_2 = self.upload_file(prefix='folder/')
-        file_3_name, file_3 = self.upload_file(prefix='folder/subfolder/')
         try:
-            self.assertEqual(self.storage.listdir(''), (['folder'], [self.file_name]))
-            file_2_tail = file_2_name.replace('folder/', '', 1)
-            self.assertEqual(self.storage.listdir('folder'),
-                             (['subfolder'], [file_2_tail]))
-            file_3_tail = file_3_name.replace('folder/subfolder/', '', 1)
-            self.assertEqual(self.storage.listdir('folder/subfolder'), ([], [file_3_tail]))
+            self.assertEqual(self.storage.listdir(''), (['media'], []))
+            file_1_tail = self.file_name.replace('media/', '', 1)
+            self.assertEqual(self.storage.listdir('media/'), (['folder'], [file_1_tail]))
+            file_2_tail = file_2_name.replace('media/folder/', '', 1)
+            self.assertEqual(self.storage.listdir('media/folder'),
+                             ([], [file_2_tail]))
         finally:
             self.storage.delete(file_2_name)
-            self.storage.delete(file_3_name)
 
     @classmethod
     def tearDownClass(cls):

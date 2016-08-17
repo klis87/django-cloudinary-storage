@@ -6,7 +6,7 @@ from django.db import models
 from django.utils.six.moves import input
 
 from cloudinary_storage.helpers import get_resources
-from cloudinary_storage.storage import storages_per_type
+from cloudinary_storage.storage import storages_per_type, RESOURCE_TYPES
 from cloudinary_storage import app_settings
 
 
@@ -64,7 +64,9 @@ class Command(BaseCommand):
         return set(chain.from_iterable(needful_files))
 
     def get_exclude_paths(self):
-        return app_settings.EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS
+        storage = storages_per_type[RESOURCE_TYPES['RAW']]
+        paths = [storage._prepend_prefix(path) for path in app_settings.EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS]
+        return tuple(paths)
 
     def get_files_to_remove(self):
         """
