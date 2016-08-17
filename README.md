@@ -257,3 +257,25 @@ setting to see when it is useful
 is the default location
 - `MAGIC_FILE_PATH`: applicable only for Windows, needed for python-magic library for movie validation, please see
 [python-magic](https://github.com/ahupp/python-magic#dependencies) for reference
+
+How to run tests
+----------------
+
+First, install tox:
+```
+$ pip install tox
+```
+
+Then, just run:
+```
+$ tox
+```
+which will execute tests for Python 2.7, 3.4 - 3,5 and Django 1.8 - 1.10. At the end you will see coverage report
+in your console. HTML version of this report will be available in `./htmlcov/index.html` file.
+
+If you only need to run tests for your environment, add `-e` argument to `tox` command in `{py27,py34,py35}-dj{18,19,110}`
+format, for example:
+```
+$ tox -e py34-dj110
+```
+which will run tests for Python 3.4 and Django 1.10.
