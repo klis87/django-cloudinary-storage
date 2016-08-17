@@ -10,7 +10,7 @@ long_description = ('Django Cloudinary Storage is a Django package that facilita
 
 setup(
     name='django-cloudinary-storage',
-    version='0.1.3',
+    version='0.1.4',
     author='Konrad Lisiczynski',
     author_email='klisiczynski@gmail.com',
     description=description,
@@ -18,7 +18,10 @@ setup(
     license='MIT',
     url='https://github.com/klis87/django-cloudinary-storage',
     keywords='django cloudinary storage',
-    packages=['cloudinary_storage'],
+    packages=[
+        'cloudinary_storage',
+        'cloudinary_storage.management',
+        'cloudinary_storage.management.commands'],
     include_package_data=True,
     install_requires=[
         'requests>=2.10.0',
