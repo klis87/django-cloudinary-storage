@@ -63,7 +63,6 @@ class MediaCloudinaryStorage(Storage):
         return response['public_id']
 
     def delete(self, name):
-        name = self._prepend_prefix(name)
         response = cloudinary.uploader.destroy(name, invalidate=True, resource_type=self.RESOURCE_TYPE)
         return response['result'] == 'ok'
 
@@ -175,12 +174,10 @@ class StaticCloudinaryStorage(MediaCloudinaryStorage):
         Saves only when a file with a name and a content is not already uploaded to Cloudinary.
         """
         name = self.clean_name(name)  # to change to UNIX style path on windows if necessary
-        if self._exists_with_etag(name, content):
-            return name
-        else:
+        if not self._exists_with_etag(name, content):
             content.seek(0)
             super(StaticCloudinaryStorage, self)._save(name, content)
-            return name
+        return self._prepend_prefix(name)
 
     def _get_prefix(self):
         return settings.STATIC_URL

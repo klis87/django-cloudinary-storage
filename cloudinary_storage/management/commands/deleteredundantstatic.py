@@ -42,9 +42,11 @@ class Command(deleteorphanedmedia.Command):
                 needful_files = set(manifest.keys() | manifest.values())
             else:
                 needful_files = set(manifest.keys() + manifest.values())
-            return {self.storage.clean_name(file) for file in needful_files}
+            needful_files = {self.storage.clean_name(file) for file in needful_files}
         else:
-            return set(manifest.values())
+            needful_files = set(manifest.values())
+        return {self.storage._prepend_prefix(file) for file in needful_files}
+
 
     def handle(self, *args, **options):
         if self.storage.read_manifest() is None:

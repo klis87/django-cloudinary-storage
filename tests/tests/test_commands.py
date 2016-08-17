@@ -196,10 +196,10 @@ class DeleteRedundantStaticCommandTests(StaticHashedStorageTestsMixin, SimpleTes
         command = DeleteRedundantStaticCommand()
         command.keep_unhashed_files = True
         expected_response = {
-            'tests/css/style.css',
-            'tests/css/style.{}.css'.format(self.style_hash),
-            'tests/css/font.css',
-            'tests/css/font.{}.css'.format(self.font_hash)
+            'static/tests/css/style.css',
+            'static/tests/css/style.{}.css'.format(self.style_hash),
+            'static/tests/css/font.css',
+            'static/tests/css/font.{}.css'.format(self.font_hash)
         }
         self.assertEqual(command.get_needful_files(), expected_response)
 
@@ -207,8 +207,8 @@ class DeleteRedundantStaticCommandTests(StaticHashedStorageTestsMixin, SimpleTes
         command = DeleteRedundantStaticCommand()
         command.keep_unhashed_files = False
         expected_response = {
-            'tests/css/style.{}.css'.format(self.style_hash),
-            'tests/css/font.{}.css'.format(self.font_hash)
+            'static/tests/css/style.{}.css'.format(self.style_hash),
+            'static/tests/css/font.{}.css'.format(self.font_hash)
         }
         self.assertEqual(command.get_needful_files(), expected_response)
 

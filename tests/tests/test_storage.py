@@ -134,10 +134,10 @@ class StaticCloudinaryStorageTests(SimpleTestCase):
     def setUpClass(cls):
         super(StaticCloudinaryStorageTests, cls).setUpClass()
         cls.storage = StaticCloudinaryStorage(tag=get_random_name())
-        cls.name = get_random_name()
+        name = get_random_name()
         cls.content = b'some content'
         cls.file = ContentFile(cls.content)
-        cls.storage.save(cls.name, cls.file)
+        cls.name = cls.storage.save(name, cls.file)
 
     @override_settings(DEBUG=True)
     def test_url_with_debug_true(self):
