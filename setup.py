@@ -3,18 +3,20 @@ from setuptools import setup
 description = ('Django package that provides Cloudinary storages for both media and static files '
                'as well as management commands for removing unnecessary files.')
 
-with open('README.md') as f:
-    long_description = f.read()
+long_description = ('Django Cloudinary Storage is a Django package that facilitates integration with Cloudinary '
+                    'by implementing Django Storage API. With several lines of configuration, you can start using '
+                    'Cloudinary for both media and static files. Also, it provides management commands for removing '
+                    'unnecessary files, so any cleanup will be a breeze. It uses pycloudinary package under the hood.')
 
 setup(
     name='django-cloudinary-storage',
-    version='0.1',
+    version='0.1.3',
     author='Konrad Lisiczynski',
     author_email='klisiczynski@gmail.com',
     description=description,
     long_description=long_description,
-    licence='MIT',
-    url='https://github.com/klis87/django-cloudinary-storage#how-to-run-tests',
+    license='MIT',
+    url='https://github.com/klis87/django-cloudinary-storage',
     keywords='django cloudinary storage',
     packages=['cloudinary_storage'],
     include_package_data=True,
@@ -24,5 +26,18 @@ setup(
     ],
     extras_require={
         'video': ['python-magic>=0.4.12']
-    }
+    },
+    classifiers=[
+        'Environment :: Web Environment',
+        'Framework :: Django',
+        'Intended Audience :: Developers',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Topic :: Internet :: WWW/HTTP',
+    ]
 )
