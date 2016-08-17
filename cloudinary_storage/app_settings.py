@@ -6,7 +6,6 @@ import cloudinary
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 user_settings = getattr(settings, 'CLOUDINARY_STORAGE', {})
 
 try:
@@ -27,7 +26,7 @@ INVALID_VIDEO_ERROR_MESSAGE = user_settings.get('INVALID_VIDEO_ERROR_MESSAGE', '
 EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS = user_settings.get('EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS', ())
 
 STATIC_TAG = user_settings.get('STATIC_TAG', 'static')
-STATICFILES_MANIFEST_ROOT = user_settings.get('STATICFILES_MANIFEST_ROOT', os.path.join(BASE_DIR, 'manifest'))
+STATICFILES_MANIFEST_ROOT = user_settings.get('STATICFILES_MANIFEST_ROOT', os.path.join(settings.BASE_DIR, 'manifest'))
 
 # used only on Windows, see https://github.com/ahupp/python-magic#dependencies for your reference
 MAGIC_FILE_PATH = user_settings.get('MAGIC_FILE_PATH', 'magic')
