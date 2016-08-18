@@ -177,7 +177,7 @@ $ python manage.py collectstatic
 
 Please note that only files with hashed name will be uploaded by default - this behavior can be changed by adding
 `--upload-unhashed-files` argument to `collectstatic` command. If you are not sure why it is useful to add hash to file
-names, shortly speaking, it allowes static files to be safely cached by Cloudinary CDN and web browsers. Without it
+names, shortly speaking, it allows static files to be safely cached by Cloudinary CDN and web browsers. Without it
 files' modification would become very problematic, because your website's users would use their private older copies.
 Hashing prevents this issue as any file change will change its url as well, which would force a browser to download
 a new version of a file.
