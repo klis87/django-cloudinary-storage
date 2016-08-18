@@ -67,6 +67,16 @@ CLOUDINARY_STORAGE = {
     'API_SECRET': 'your_api_secret'
 }
 ```
+Instead of putting credentials in `settings.py`, you can provide them as `CLOUDINARY_CLOUD_NAME`,
+`CLOUDINARY_API_SECRET` and `CLOUDINARY_API_KEY` environment variables. It is possible as well to set only
+`CLOUDINARY_URL` variable, combining all the information, for example:
+```
+$ export CLOUDINARY_URL=cloudinary://your_api_key:your_api_secret@your_cloud_name
+```
+For those of you who use Heroku, that's a very good news, because you won't need to set it yourself, as Heroku sets
+`CLOUDINARY_URL` environment variable for you (provided you use Cloudinary as Heroku addon).
+
+Also, be aware that `settings.py` takes precedence over environment variables.
 
 Usage with media files
 ----------------------
@@ -78,8 +88,8 @@ The package provides three media storages:
 
 Above distinction if necessary as Cloudinary API needs to know resource type in many of its methods.
 
-Now, let's consider the most probable scenario that you will use Cloudinary for images uploaded by users of your website.
-Let's say you created a following Django model:
+Now, let's consider the most probable scenario that you will use Cloudinary for images uploaded by users of your
+website. Let's say you created a following Django model:
 ```python
 class TestModel(models.Model):
     name = models.CharField(max_length=100)
@@ -97,8 +107,9 @@ Now, in order to put this image into your template, you can just type:
 <img src="{{ test_model_instance.image.url }}" alt="{{ test_model_instance.image.name }}">
 ```
 
-However, doing that in this way, the image will be downloaded with its original size, as uploaded by a user. To have more
-control, you can use Cloudinary image transformations. For example, to change the image's size, use below code:
+However, doing that in this way, the image will be downloaded with its original size, as uploaded by a user.
+To have more control, you can use Cloudinary image transformations. For example, to change the image's size,
+use below code:
 ```django
 {% load cloudinary %}
 {% cloudinary test_model_instance.image.name width=100 height=100 %}
@@ -116,8 +127,8 @@ in `settings.py`:
 ```python
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.RawMediaCloudinaryStorage'
 ```
-But what if they could upload both types? Well, not a problem! Just set `DEFAULT_FILE_STORAGE` setting to the most common
-resource type, and for fields of different type, you will need to set a correct storage individually, like this:
+But what if they could upload both types? Well, not a problem! Just set `DEFAULT_FILE_STORAGE` setting to the most
+common resource type, and for fields of different type, you will need to set a correct storage individually, like this:
 ```python
 from django.db import models
 
@@ -128,8 +139,8 @@ class TestModelWithRawFileAndImage(models.Model):
     raw_file = models.ImageField(upload_to='raw/', blank=True, storage=RawMediaCloudinaryStorage())
     image = models.ImageField(upload_to='images/', blank=True)  # no need to set storage, field will use the default one
 ```
-In above example we assumed `DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'`, that's why we set
-storage explicitly only for `raw_file`.
+In above example we assumed `DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'`,
+that's why we set storage explicitly only for `raw_file`.
 
 ### Usage with video files
 
@@ -206,11 +217,13 @@ The package provides three management commands:
 
 ### collectstatic
 
-Adds minor modifications to Django `collectstatic` to improve upload performance. It uploads only hashed files as the default. Also, it uploads a file only when necessary, namely it won't upload the file if a file with the same name and content will be already uploaded to Cloudinary, which will save both time and bandwidth.
+Adds minor modifications to Django `collectstatic` to improve upload performance. It uploads only hashed files
+as the default. Also, it uploads a file only when necessary, namely it won't upload the file if a file with the same
+name and content will be already uploaded to Cloudinary, which will save both time and bandwidth.
 
 Optional arguments:
-- `--upload-unhashed-files` - uploads files without hash added to their name along with hashed ones, use it only when it is
-really necessary
+- `--upload-unhashed-files` - uploads files without hash added to their name along with hashed ones, use it only
+when it is really necessary
 - `--noinput` - non-interactive mode, the command won't ask you to do any confirmations
 
 ### deleteorphanedmedia
@@ -283,6 +296,8 @@ First, install tox:
 ```
 $ pip install tox
 ```
+
+After that, edit `tox.ini` file and input your Cloudinary credentials in `setenv`.
 
 Then, just run:
 ```
