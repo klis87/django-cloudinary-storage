@@ -47,7 +47,8 @@ Also, in case you use Django `ImageField`, make sure you have Pillow installed:
 $ pip install Pillow
 ```
 
-Once you have done that, add `cloudinary` and `cloudinary_storage` to you installed apps in your `settings.py`:
+Once you have done that, add `cloudinary` and `cloudinary_storage` to you installed apps in your `settings.py`. If you
+are going to use this package for static and/or media files, make sure that `cloudinary_storage` is before `django.contrib.staticfiles`:
 ```python
 INSTALLED_APPS = [
     # ...
@@ -57,7 +58,17 @@ INSTALLED_APPS = [
     # ...
 ]
 ```
-Make sure that `cloudinary_storage` is before `django.contrib.staticfiles`, otherwise the package won't work properly.
+because django-cloudinary-storage overwrites Django `collectstatic` command. If you are going to use it only for media files
+though, it is `django.contrib.staticfiles` which has to be first:
+```python
+INSTALLED_APPS = [
+    # ...
+    'django.contrib.staticfiles',
+    'cloudinary_storage',
+    'cloudinary',
+    # ...
+]
+```
 
 Next, you need to add Cloudinary credentials to `settings.py`:
 ```python
