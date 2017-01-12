@@ -102,7 +102,7 @@ class MediaCloudinaryStorage(Storage):
         prefix = self._normalize_path(prefix)
         if not name.startswith(prefix):
             name = prefix + name
-        return name.replace('\\', '/')
+        return name
 
     def listdir(self, path):
         path = self._normalize_path(path)
