@@ -7,7 +7,7 @@ from django.core.files.base import ContentFile
 from django.conf import settings
 
 from cloudinary_storage.storage import (MediaCloudinaryStorage, ManifestCloudinaryStorage, StaticCloudinaryStorage,
-    StaticHashedCloudinaryStorage)
+                                        StaticHashedCloudinaryStorage)
 from cloudinary_storage import app_settings
 from tests.tests.test_helpers import get_random_name, import_mock
 
@@ -25,8 +25,8 @@ class CloudinaryMediaStorageTests(SimpleTestCase):
         cls.file_name, cls.file = cls.upload_file()
 
     @classmethod
-    def upload_file(cls, prefix=''):
-        file_name = prefix + get_random_name()
+    def upload_file(cls, prefix='', directory_name=''):
+        file_name = prefix + directory_name + get_random_name()
         content = ContentFile(cls.file_content)
         file_name = cls.storage.save(file_name, content)
         return file_name, content
@@ -105,6 +105,14 @@ class CloudinaryMediaStorageTests(SimpleTestCase):
                              ([], [file_2_tail]))
         finally:
             self.storage.delete(file_2_name)
+
+    def test_file_with_windows_path_uploaded_and_exists(self):
+        file_name, file = self.upload_file(directory_name='windows\\styled\\path\\')
+        try:
+            self.assertTrue(self.storage.exists(file_name))
+        finally:
+            self.storage.delete(file_name)
+
 
     @classmethod
     def tearDownClass(cls):

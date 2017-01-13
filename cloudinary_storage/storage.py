@@ -57,6 +57,7 @@ class MediaCloudinaryStorage(Storage):
         return cloudinary.uploader.upload(content, **options)
 
     def _save(self, name, content):
+        name = self._normalise_name(name)
         name = self._prepend_prefix(name)
         content = UploadedFile(content, name)
         response = self._upload(name, content)
@@ -116,6 +117,9 @@ class MediaCloudinaryStorage(Storage):
             else:
                 files.append(resource_tail)
         return list(directories), files
+
+    def _normalise_name(self, name):
+        return name.replace('\\', '/')
 
 
 class RawMediaCloudinaryStorage(MediaCloudinaryStorage):
