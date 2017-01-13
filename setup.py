@@ -10,7 +10,7 @@ long_description = ('Django Cloudinary Storage is a Django package that facilita
 
 setup(
     name='django-cloudinary-storage',
-    version='0.1.7',
+    version='0.1.8',
     author='Konrad Lisiczynski',
     author_email='klisiczynski@gmail.com',
     description=description,
