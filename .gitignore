@@ -8,3 +8,5 @@ manifest
 db.sqlite3
 *.egg-info
 htmlcov
+build
+dist
