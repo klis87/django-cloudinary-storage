@@ -63,6 +63,15 @@ class CloudinaryMediaStorageTests(SimpleTestCase):
         url = self.storage.url('name')
         self.assertTrue(url.startswith('http'))
 
+    def test_size_of_existing_file(self):
+        size = self.storage.size(self.file_name)
+        self.assertEqual(size, self.file.size)
+
+    def test_size_of_not_existing_file_returns_none(self):
+        file_name = get_random_name()
+        size = self.storage.size(file_name)
+        self.assertEqual(size, None)
+
     def test_opened_file_has_correct_content(self):
         file = self.storage.open(self.file_name)
         self.assertEqual(file.read(), self.file_content)

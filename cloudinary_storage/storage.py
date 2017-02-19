@@ -83,6 +83,14 @@ class MediaCloudinaryStorage(Storage):
         response.raise_for_status()
         return True
 
+    def size(self, name):
+        url = self._get_url(name)
+        response = requests.head(url)
+        if response.status_code == 200:
+            return int(response.headers['content-length'])
+        else:
+            return None
+
     def get_available_name(self, name, max_length=None):
         if max_length is None:
             return name
