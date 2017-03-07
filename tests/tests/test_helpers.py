@@ -39,6 +39,9 @@ class StaticHashedStorageTestsMixin(object):
         content = File(open(os.path.join('tests', 'static', 'tests', 'css', 'font.css'), 'rb'))
         cls.font_hash = hash_mixin.file_hash('tests/css/font.css', content)
         content.close()
+        content = File(open(os.path.join('tests', 'static', 'tests', 'images', 'dummy-static-image.jpg'), 'rb'))
+        cls.image_hash = hash_mixin.file_hash('tests/images/dummy-static-image.jpg', content)
+        content.close()
         name = StaticHashedCloudinaryStorage.manifest_name
         cls.manifest_path = os.path.join(app_settings.STATICFILES_MANIFEST_ROOT, name)
         super(StaticHashedStorageTestsMixin, cls).setUpClass()

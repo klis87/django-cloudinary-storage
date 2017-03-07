@@ -12,7 +12,7 @@ from cloudinary_storage.storage import (MediaCloudinaryStorage, RawMediaCloudina
 from cloudinary_storage import app_settings
 from tests.models import TestModel, TestImageModel, TestModelWithoutFile
 from tests.tests.test_helpers import (get_random_name, set_media_tag, execute_command, StaticHashedStorageTestsMixin,
-    import_mock)
+                                      import_mock)
 
 mock = import_mock()
 
@@ -130,7 +130,11 @@ class DeleteOrphanedMediaCommandPromptTests(TestCase):
                 self.assertIn('As ordered, no file has been deleted.', output)
 
 
-STATIC_FILES = (os.path.join('tests', 'css', 'style.css'), os.path.join('tests', 'css', 'font.css'))
+STATIC_FILES = (
+    os.path.join('tests', 'css', 'style.css'),
+    os.path.join('tests', 'css', 'font.css'),
+    os.path.join('tests', 'images', 'dummy-static-image.jpg')
+)
 
 
 @override_settings(STATICFILES_STORAGE='cloudinary_storage.storage.StaticCloudinaryStorage')
@@ -138,10 +142,10 @@ class CollectStaticCommandTests(SimpleTestCase):
     @mock.patch.object(StaticCloudinaryStorage, 'save')
     def test_command_saves_static_files(self, save_mock):
         output = execute_command('collectstatic', '--noinput')
-        self.assertEqual(save_mock.call_count, 2)
+        self.assertEqual(save_mock.call_count, 3)
         for file in STATIC_FILES:
             self.assertIn(file, output)
-        self.assertIn('2 static files copied.', output)
+        self.assertIn('3 static files copied.', output)
 
 
 @override_settings(STATICFILES_STORAGE='cloudinary_storage.storage.StaticHashedCloudinaryStorage')
@@ -150,18 +154,18 @@ class CollectStaticCommandWithHashedStorageTests(SimpleTestCase):
     @mock.patch.object(StaticHashedCloudinaryStorage, 'save_manifest')
     def test_command_saves_hashed_static_files(self, save_manifest_mock, save_mock):
         output = execute_command('collectstatic', '--noinput')
-        self.assertEqual(save_mock.call_count, 2)
+        self.assertEqual(save_mock.call_count, 3)
         for file in STATIC_FILES:
             self.assertIn(file, output)
-        self.assertIn('0 static files copied, 2 post-processed.', output)
+        self.assertIn('0 static files copied, 3 post-processed.', output)
 
     @mock.patch.object(StaticHashedCloudinaryStorage, 'save_manifest')
     def test_command_saves_unhashed_static_files_with_upload_unhashed_files_arg(self, save_manifest_mock, save_mock):
         output = execute_command('collectstatic', '--noinput', '--upload-unhashed-files')
-        self.assertEqual(save_mock.call_count, 4)
+        self.assertEqual(save_mock.call_count, 6)
         for file in STATIC_FILES:
             self.assertIn(file, output)
-        self.assertIn('2 static files copied, 2 post-processed.', output)
+        self.assertIn('3 static files copied, 3 post-processed.', output)
 
     def test_command_saves_manifest_file(self, save_mock):
         name = get_random_name()
@@ -199,7 +203,9 @@ class DeleteRedundantStaticCommandTests(StaticHashedStorageTestsMixin, SimpleTes
             'static/tests/css/style.css',
             'static/tests/css/style.{}.css'.format(self.style_hash),
             'static/tests/css/font.css',
-            'static/tests/css/font.{}.css'.format(self.font_hash)
+            'static/tests/css/font.{}.css'.format(self.font_hash),
+            'static/tests/images/dummy-static-image.jpg',
+            'static/tests/images/dummy-static-image.{}.jpg'.format(self.image_hash)
         }
         self.assertEqual(command.get_needful_files(), expected_response)
 
@@ -208,7 +214,8 @@ class DeleteRedundantStaticCommandTests(StaticHashedStorageTestsMixin, SimpleTes
         command.keep_unhashed_files = False
         expected_response = {
             'static/tests/css/style.{}.css'.format(self.style_hash),
-            'static/tests/css/font.{}.css'.format(self.font_hash)
+            'static/tests/css/font.{}.css'.format(self.font_hash),
+            'static/tests/images/dummy-static-image.{}.jpg'.format(self.image_hash)
         }
         self.assertEqual(command.get_needful_files(), expected_response)
 
