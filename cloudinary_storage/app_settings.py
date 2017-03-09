@@ -44,5 +44,41 @@ EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS = user_settings.get('EXCLUDE_DELETE_ORPHANED
 STATIC_TAG = user_settings.get('STATIC_TAG', 'static')
 STATICFILES_MANIFEST_ROOT = user_settings.get('STATICFILES_MANIFEST_ROOT', os.path.join(settings.BASE_DIR, 'manifest'))
 
+STATIC_IMAGES_EXTENSIONS = user_settings.get('STATIC_IMAGES_EXTENSIONS',
+                                             [
+                                                 'jpg',
+                                                 'jpe',
+                                                 'jpeg',
+                                                 'jpc',
+                                                 'jp2',
+                                                 'j2k',
+                                                 'wdp',
+                                                 'jxr',
+                                                 'hdp',
+                                                 'png',
+                                                 'gif',
+                                                 'webp',
+                                                 'bmp',
+                                                 'tif',
+                                                 'tiff',
+                                                 'ico'
+                                             ])
+
+STATIC_VIDEOS_EXTENSIONS = user_settings.get('STATIC_VIDEOS_EXTENSIONS',
+                                             [
+                                                 'mp4',
+                                                 'webm',
+                                                 'flv',
+                                                 'mov',
+                                                 'ogv',
+                                                 '3gp',
+                                                 '3g2',
+                                                 'wmv',
+                                                 'mpeg',
+                                                 'flv',
+                                                 'mkv',
+                                                 'avi'
+                                             ])
+
 # used only on Windows, see https://github.com/ahupp/python-magic#dependencies for your reference
 MAGIC_FILE_PATH = user_settings.get('MAGIC_FILE_PATH', 'magic')
