@@ -38,6 +38,13 @@ class MediaCloudinaryStorage(Storage):
         if resource_type is not None:
             self.RESOURCE_TYPE = resource_type
 
+    def _get_resource_type(self, name):
+        """
+        Implemented to allow different resource types per file name
+        within one storage class.
+        """
+        return self.RESOURCE_TYPE
+
     def _open(self, name, mode='rb'):
         url = self._get_url(name)
         response = requests.get(url)
@@ -50,7 +57,7 @@ class MediaCloudinaryStorage(Storage):
         return file
 
     def _upload(self, name, content):
-        options = {'use_filename': True, 'resource_type': self.RESOURCE_TYPE, 'tags': self.TAG}
+        options = {'use_filename': True, 'resource_type': self._get_resource_type(name), 'tags': self.TAG}
         folder = os.path.dirname(name)
         if folder:
             options['folder'] = folder
@@ -64,12 +71,12 @@ class MediaCloudinaryStorage(Storage):
         return response['public_id']
 
     def delete(self, name):
-        response = cloudinary.uploader.destroy(name, invalidate=True, resource_type=self.RESOURCE_TYPE)
+        response = cloudinary.uploader.destroy(name, invalidate=True, resource_type=self._get_resource_type(name))
         return response['result'] == 'ok'
 
     def _get_url(self, name):
         name = self._prepend_prefix(name)
-        cloudinary_resource = cloudinary.CloudinaryResource(name, default_resource_type=self.RESOURCE_TYPE)
+        cloudinary_resource = cloudinary.CloudinaryResource(name, default_resource_type=self._get_resource_type(name))
         return cloudinary_resource.url
 
     def url(self, name):
