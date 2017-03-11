@@ -91,8 +91,11 @@ class Command(BaseCommand):
     def delete_orphaned_files(self, files):
         for resource_type, files_per_type in files.items():
             for file in files_per_type:
-                storages_per_type[resource_type].delete(file)
+                self.get_file_storage(resource_type).delete(file)
                 self.stdout.write('Deleted {}.'.format(file))
+
+    def get_file_storage(self, resource_type):
+        return storages_per_type[resource_type]
 
     def handle(self, *args, **options):
         self.set_options(**options)

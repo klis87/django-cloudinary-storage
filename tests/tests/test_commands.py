@@ -8,7 +8,7 @@ from django.core.management import CommandError
 from cloudinary_storage.management.commands.deleteorphanedmedia import Command as DeleteOrphanedMediaCommand
 from cloudinary_storage.management.commands.deleteredundantstatic import Command as DeleteRedundantStaticCommand
 from cloudinary_storage.storage import (MediaCloudinaryStorage, RawMediaCloudinaryStorage, StaticCloudinaryStorage,
-                                        StaticHashedCloudinaryStorage, RESOURCE_TYPES)
+                                        StaticHashedCloudinaryStorage, RESOURCE_TYPES, storages_per_type)
 from cloudinary_storage import app_settings
 from tests.models import TestModel, TestImageModel, TestModelWithoutFile
 from tests.tests.test_helpers import (get_random_name, set_media_tag, execute_command, StaticHashedStorageTestsMixin,
@@ -64,6 +64,11 @@ class DeleteOrphanedMediaCommandHelpersTests(BaseOrphanedMediaCommandTestsMixin,
         command = DeleteOrphanedMediaCommand()
         expected = {RESOURCE_TYPES['RAW'], RESOURCE_TYPES['IMAGE'], RESOURCE_TYPES['VIDEO']}
         self.assertEqual(expected, command.get_resource_types())
+
+    def test_get_file_storage_for_image_resource_type(self):
+        command = DeleteOrphanedMediaCommand()
+        storage = command.get_file_storage(RESOURCE_TYPES['IMAGE'])
+        self.assertEqual(storage, storages_per_type[RESOURCE_TYPES['IMAGE']])
 
     def test_get_uploaded_media(self):
         command = DeleteOrphanedMediaCommand()
@@ -191,6 +196,16 @@ class DeleteRedundantStaticCommandTests(StaticHashedStorageTestsMixin, SimpleTes
     def test_command_raises_error_when_manifest_doesnt_exist(self, read_manifest_mock):
         with self.assertRaises(CommandError):
             execute_command('deleteredundantstatic', '--noinput')
+
+    def test_get_file_storage(self):
+        command = DeleteRedundantStaticCommand()
+        storage = command.get_file_storage(RESOURCE_TYPES['IMAGE'])
+        self.assertEqual(storage, command.storage)
+
+    def test_get_resource_types(self):
+        command = DeleteRedundantStaticCommand()
+        expected = {RESOURCE_TYPES['RAW'], RESOURCE_TYPES['IMAGE'], RESOURCE_TYPES['VIDEO']}
+        self.assertEqual(expected, command.get_resource_types())
 
     def test_get_exclude_paths_returns_empty_tuple(self):
         command = DeleteRedundantStaticCommand()

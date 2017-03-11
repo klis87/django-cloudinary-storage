@@ -192,7 +192,8 @@ class StaticCloudinaryStorage(MediaCloudinaryStorage):
         return super(StaticCloudinaryStorage, self).url(name)
 
     def _upload(self, name, content):
-        return cloudinary.uploader.upload(content, public_id=name, resource_type=self.RESOURCE_TYPE,
+        resource_type = self._get_resource_type(name)
+        return cloudinary.uploader.upload(content, public_id=name, resource_type=resource_type,
                                           invalidate=True, tags=self.TAG)
 
     # we only need 2 method of HashedFilesMixin, so we just copy them as function objects to avoid MRO complexities

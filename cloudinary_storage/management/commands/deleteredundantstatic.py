@@ -24,9 +24,12 @@ class Command(deleteorphanedmedia.Command):
 
     def get_resource_types(self):
         """
-        Overwritten as all static files are of raw resource type.
+        Overwritten as static files can be of any resource type.
         """
-        return {RESOURCE_TYPES['RAW']}
+        return set(RESOURCE_TYPES.values())
+
+    def get_file_storage(self, resource_type):
+        return self.storage
 
     def get_exclude_paths(self):
         return ()
