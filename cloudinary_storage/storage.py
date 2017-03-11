@@ -201,6 +201,15 @@ class StaticCloudinaryStorage(MediaCloudinaryStorage):
     def _get_prefix(self):
         return settings.STATIC_URL
 
+    def listdir(self, path):
+        """
+        Not implemented as static assets can be of different resource types
+        in contrast to media storages, which are specialized per given resource type.
+        That's why we cannot use parent's class listdir.
+        This method could be implemented in the future if there is a demand for it.
+        """
+        raise NotImplementedError()
+
 
 class ManifestCloudinaryStorage(FileSystemStorage):
     """
