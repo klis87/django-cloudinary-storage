@@ -162,6 +162,22 @@ class StaticCloudinaryStorage(MediaCloudinaryStorage):
     RESOURCE_TYPE = RESOURCE_TYPES['RAW']
     TAG = app_settings.STATIC_TAG
 
+    def _get_resource_type(self, name):
+        """
+        Implemented as static files can be of different resource types.
+        Because web developers are the people who control those files, we can distinguish them
+        simply by looking at their extensions, we don't need any content based validation.
+        """
+        extension = self._get_file_extension(name)
+        if extension is None:
+            return self.RESOURCE_TYPE
+        elif extension in app_settings.STATIC_IMAGES_EXTENSIONS:
+            return RESOURCE_TYPES['IMAGE']
+        elif extension in app_settings.STATIC_VIDEOS_EXTENSIONS:
+            return RESOURCE_TYPES['VIDEO']
+        else:
+            return self.RESOURCE_TYPE
+
     @staticmethod
     def _get_file_extension(name):
         substrings = name.split('.')

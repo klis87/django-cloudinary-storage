@@ -7,7 +7,7 @@ from django.core.files.base import ContentFile
 from django.conf import settings
 
 from cloudinary_storage.storage import (MediaCloudinaryStorage, ManifestCloudinaryStorage, StaticCloudinaryStorage,
-                                        StaticHashedCloudinaryStorage)
+                                        StaticHashedCloudinaryStorage, RESOURCE_TYPES)
 from cloudinary_storage import app_settings
 from tests.tests.test_helpers import get_random_name, import_mock
 
@@ -179,7 +179,7 @@ class StaticCloudinaryStorageTests(SimpleTestCase):
 
     def test_get_file_extension_returns_none_for_file_without_extension(self):
         extension = self.storage._get_file_extension('file-with-accidental-ending-jpg')
-        self.assertEqual(extension, None)
+        self.assertIsNone(extension)
 
     def test_get_file_extension_returns_correct_file_extension(self):
         extension = self.storage._get_file_extension('file.png.jpg')
@@ -188,6 +188,22 @@ class StaticCloudinaryStorageTests(SimpleTestCase):
     def test_get_file_extension_converts_extension_to_lowercase(self):
         extension = self.storage._get_file_extension('file.JPG')
         self.assertEqual(extension, 'jpg')
+
+    def test_get_resource_type_returns_default_resource_type_for_file_without_extension(self):
+        resource_type = self.storage._get_resource_type('file-without-extension')
+        self.assertEqual(resource_type, self.storage.RESOURCE_TYPE)
+
+    def test_get_resource_type_returns_default_resource_type_for_file_with_js_extension(self):
+        resource_type = self.storage._get_resource_type('file.js')
+        self.assertEqual(resource_type, self.storage.RESOURCE_TYPE)
+
+    def test_get_resource_type_returns_image_resource_type_for_file_with_jpg_extension(self):
+        resource_type = self.storage._get_resource_type('file.jpg')
+        self.assertEqual(resource_type, RESOURCE_TYPES['IMAGE'])
+
+    def test_get_resource_type_returns_video_resource_type_for_file_with_avi_extension(self):
+        resource_type = self.storage._get_resource_type('file.avi')
+        self.assertEqual(resource_type, RESOURCE_TYPES['VIDEO'])
 
     @classmethod
     def tearDownClass(cls):
