@@ -1,11 +1,10 @@
 import os
 
-from .test_helpers import import_mock
-
 from django.test import SimpleTestCase
 from django.core.exceptions import ImproperlyConfigured
 
 from cloudinary_storage.app_settings import set_credentials
+from .test_helpers import import_mock
 
 mock = import_mock()
 

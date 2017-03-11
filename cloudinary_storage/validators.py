@@ -10,7 +10,7 @@ from cloudinary_storage import app_settings
 
 def validate_video(value):
     if os.name == 'nt':
-        magic_object = magic.Magic(magic_file ='magic', mime=True)
+        magic_object = magic.Magic(magic_file='magic', mime=True)
         mime = magic_object.from_buffer(value.file.read(1024))
     else:
         mime = magic.from_buffer(value.file.read(1024), mime=True)
