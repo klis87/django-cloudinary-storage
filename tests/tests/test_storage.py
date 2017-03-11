@@ -177,6 +177,18 @@ class StaticCloudinaryStorageTests(SimpleTestCase):
         self.storage.save(self.name, changed_file)
         save_mock.assert_called_once_with(self.name, changed_file)
 
+    def test_get_file_extension_returns_none_for_file_without_extension(self):
+        extension = self.storage._get_file_extension('file-with-accidental-ending-jpg')
+        self.assertEqual(extension, None)
+
+    def test_get_file_extension_returns_correct_file_extension(self):
+        extension = self.storage._get_file_extension('file.png.jpg')
+        self.assertEqual(extension, 'jpg')
+
+    def test_get_file_extension_converts_extension_to_lowercase(self):
+        extension = self.storage._get_file_extension('file.JPG')
+        self.assertEqual(extension, 'jpg')
+
     @classmethod
     def tearDownClass(cls):
         super(StaticCloudinaryStorageTests, cls).tearDownClass()

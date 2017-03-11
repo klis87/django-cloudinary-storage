@@ -162,6 +162,14 @@ class StaticCloudinaryStorage(MediaCloudinaryStorage):
     RESOURCE_TYPE = RESOURCE_TYPES['RAW']
     TAG = app_settings.STATIC_TAG
 
+    @staticmethod
+    def _get_file_extension(name):
+        substrings = name.split('.')
+        if len(substrings) == 1:  # no extensions
+            return None
+        else:
+            return substrings[-1].lower()
+
     def url(self, name):
         if settings.DEBUG:
             return settings.STATIC_URL + name
