@@ -2,6 +2,7 @@ import errno
 import os.path
 
 from requests.exceptions import HTTPError
+import cloudinary.uploader
 from django.test import SimpleTestCase, override_settings
 from django.core.files.base import ContentFile
 from django.conf import settings
@@ -204,6 +205,25 @@ class StaticCloudinaryStorageTests(SimpleTestCase):
     def test_get_resource_type_returns_video_resource_type_for_file_with_avi_extension(self):
         resource_type = self.storage._get_resource_type('file.avi')
         self.assertEqual(resource_type, RESOURCE_TYPES['VIDEO'])
+
+    def test_remove_extension_for_non_raw_file_leaves_name_intact_when_raw_file(self):
+        name = self.storage._remove_extension_for_non_raw_file('file.css')
+        self.assertEqual(name, 'file.css')
+
+    def test_remove_extension_for_non_raw_file_leaves_name_intact_when_file_without_extension(self):
+        name = self.storage._remove_extension_for_non_raw_file('file')
+        self.assertEqual(name, 'file')
+
+    def test_remove_extension_for_non_raw_file_removes_extension_when_file_is_jpg(self):
+        name = self.storage._remove_extension_for_non_raw_file('file.jpg')
+        self.assertEqual(name, 'file')
+
+    @mock.patch.object(cloudinary.uploader, 'upload')
+    def test_upload_uses_remove_extension_for_non_raw_file(self, cloudinary_upload_mock):
+        self.storage._upload('name.jpg', 'content')
+        resource_type = self.storage._get_resource_type('name.jpg')
+        cloudinary_upload_mock.assert_called_once_with('content', public_id='name', resource_type=resource_type,
+                                                       invalidate=True, tags=self.storage.TAG)
 
     @classmethod
     def tearDownClass(cls):

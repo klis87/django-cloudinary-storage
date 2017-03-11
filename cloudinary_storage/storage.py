@@ -193,8 +193,23 @@ class StaticCloudinaryStorage(MediaCloudinaryStorage):
 
     def _upload(self, name, content):
         resource_type = self._get_resource_type(name)
+        name = self._remove_extension_for_non_raw_file(name)
         return cloudinary.uploader.upload(content, public_id=name, resource_type=resource_type,
                                           invalidate=True, tags=self.TAG)
+
+    def _remove_extension_for_non_raw_file(self, name):
+        """
+        Implemented as image and video files' Cloudinary public id
+        shouldn't contain file extensions, otherwise Cloudinary url
+        would contain doubled extension - Cloudinary adds extension to url
+        to allow file conversion to arbitrary file, like png to jpg.
+        """
+        file_resource_type = self._get_resource_type(name)
+        if file_resource_type is None or file_resource_type == self.RESOURCE_TYPE:
+            return name
+        else:
+            extension = self._get_file_extension(name)
+            return name[:-len(extension) - 1]
 
     # we only need 2 method of HashedFilesMixin, so we just copy them as function objects to avoid MRO complexities
     file_hash = HashedFilesMixin.file_hash if PY3 else get_method_function(HashedFilesMixin.file_hash)
