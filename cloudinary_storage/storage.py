@@ -303,11 +303,11 @@ class HashCloudinaryMixin(object):
         return urlunsplit(unparsed_name)
 
     def post_process(self, paths, dry_run=False, **options):
-        original_delete = self.delete
-        self.delete = lambda name: None  # temporarily overwritten to prevent any deletion in post_process
+        original_exists = self.exists
+        self.exists = lambda name: False  # temporarily overwritten to prevent any exist check
         for response in super(HashCloudinaryMixin, self).post_process(paths, dry_run, **options):
             yield response
-        self.delete = original_delete
+        self.exists = original_exists
 
     def read_manifest(self):
         try:
