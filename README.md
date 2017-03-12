@@ -212,11 +212,25 @@ In order to use static files from Cloudinary, make sure you write your templates
 ```django
 {% load static from staticfiles %}
 <link rel="stylesheet" href="{% static 'css/style.css' %}">
+<img src="{% static 'images/dummy-static-image.jpg' %}" alt="dummy static image">
 ```
 In Django 1.10 and later, you could use `{% load static %}` instead of `{% load static from staticfiles %}`.
 
+If you would like to apply Cloudinary transformations for static images or videos, please use `cloudinary_static`
+template tag as follows:
+```django
+{% load cloudinary_static %}
+{% cloudinary_static 'images/dummy-static-image.jpg' width=50 height=50 %}
+```
+You can adjust `STATIC_IMAGES_EXTENSIONS` and `STATIC_VIDEOS_EXTENSIONS` to set rules which file extensions are treated
+as image or video files. Files with different extensions will be uploaded as Cloudinary raw files and no transformations
+could be applied for those files. Also, please note that `cloudinary_static` is just a thin wrapper around `cloudinary`
+tag from [pycloudinary](https://github.com/cloudinary/pycloudinary) library, so please go to its documentation
+to see what transformations are possible.
+
 Please note that you must set `DEBUG` to `False` to fetch static files from Cloudinary. With `DEBUG` equal to `True`,
-Django `staticfiles` app will use your local files for easier and faster development.
+Django `staticfiles` app will use your local files for easier and faster development (unless you use
+`cloudinary_static` template tag).
 
 Management commands
 -------------------
@@ -279,7 +293,11 @@ CLOUDINARY_STORAGE = {
     'EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS': (),
     'STATIC_TAG': 'static',
     'STATICFILES_MANIFEST_ROOT': os.path.join(BASE_DIR, 'manifest'),
-    'MAGIC_FILE_PATH': 'magic'
+    'STATIC_IMAGES_EXTENSIONS': ['jpg', 'jpe', 'jpeg', 'jpc', 'jp2', 'j2k', 'wdp', 'jxr',
+                                 'hdp', 'png', 'gif', 'webp', 'bmp', 'tif', 'tiff', 'ico'],
+    'STATIC_VIDEOS_EXTENSIONS': ['mp4', 'webm', 'flv', 'mov', 'ogv' ,'3gp' ,'3g2' ,'wmv' ,
+                                 'mpeg' ,'flv' ,'mkv' ,'avi'],
+    'MAGIC_FILE_PATH': 'magic',
 }
 ```
 `CLOUD_NAME`, `API_KEY` and `API_SECRET` are mandatory and you need to define them in `CLOUDINARY_STORAGE` dictionary
@@ -297,6 +315,8 @@ which will never be deleted
 setting to see when it is useful
 - `STATICFILES_MANIFEST_ROOT` - path where `staticfiles.json` will be saved after `collectstatic` command, `./manifest`
 is the default location
+- `STATIC_IMAGES_EXTENSIONS` - list of file extensions with which static files will be treated as Cloudinary images
+- `STATIC_VIDEOS_EXTENSIONS` - list of file extensions with which static files will be uploaded as Cloudinary videos
 - `MAGIC_FILE_PATH`: applicable only for Windows, needed for python-magic library for movie validation, please see
 [python-magic](https://github.com/ahupp/python-magic#dependencies) for reference
 
