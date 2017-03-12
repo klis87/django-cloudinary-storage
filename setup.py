@@ -20,6 +20,7 @@ setup(
     keywords='django cloudinary storage',
     packages=[
         'cloudinary_storage',
+        'cloudinary_storage.templatetags',
         'cloudinary_storage.management',
         'cloudinary_storage.management.commands'],
     include_package_data=True,
