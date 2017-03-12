@@ -211,7 +211,7 @@ class StaticCloudinaryStorage(MediaCloudinaryStorage):
             extension = self._get_file_extension(name)
             return name[:-len(extension) - 1]
 
-    # we only need 2 method of HashedFilesMixin, so we just copy them as function objects to avoid MRO complexities
+    # we only need 2 methods of HashedFilesMixin, so we just copy them as function objects to avoid MRO complexities
     file_hash = HashedFilesMixin.file_hash if PY3 else get_method_function(HashedFilesMixin.file_hash)
     clean_name = HashedFilesMixin.clean_name if PY3 else get_method_function(HashedFilesMixin.clean_name)
 
@@ -249,6 +249,13 @@ class StaticCloudinaryStorage(MediaCloudinaryStorage):
         This method could be implemented in the future if there is a demand for it.
         """
         raise NotImplementedError()
+
+    def stored_name(self, name):
+        """
+        Implemented to standardize interface
+        for StaticCloudinaryStorage and StaticHashedCloudinaryStorage
+        """
+        return self._prepend_prefix(name)
 
 
 class ManifestCloudinaryStorage(FileSystemStorage):
@@ -331,6 +338,9 @@ class HashCloudinaryMixin(object):
             self.manifest_storage.delete(self.manifest_name)
         contents = json.dumps(payload).encode('utf-8')
         self.manifest_storage._save(self.manifest_name, ContentFile(contents))
+
+    # we only need 1 method of HashedFilesMixin, so we just copy it as function objects to avoid MRO complexities
+    stored_name = HashedFilesMixin.stored_name if PY3 else get_method_function(HashedFilesMixin.stored_name)
 
 
 class StaticHashedCloudinaryStorage(HashCloudinaryMixin, ManifestFilesMixin, StaticCloudinaryStorage):

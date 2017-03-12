@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 {% load static from staticfiles %}
+{% load cloudinary_static %}
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -8,5 +9,13 @@
 </head>
 <body>
   <h1>Django Cloudinary storage example</h1>
+  <div>
+    <h2>Dummy static image</h2>
+    <img src="{% static 'tests/images/dummy-static-image.jpg' %}" alt="dummy static image">
+  </div>
+  <div>
+    <h2>Transformed dummy static image</h2>
+    {% cloudinary_static 'tests/images/dummy-static-image.jpg' width=50 height=50 %}
+  </div>
 </body>
 </html>
