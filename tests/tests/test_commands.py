@@ -219,8 +219,8 @@ class DeleteRedundantStaticCommandTests(StaticHashedStorageTestsMixin, SimpleTes
             'static/tests/css/style.{}.css'.format(self.style_hash),
             'static/tests/css/font.css',
             'static/tests/css/font.{}.css'.format(self.font_hash),
-            'static/tests/images/dummy-static-image.jpg',
-            'static/tests/images/dummy-static-image.{}.jpg'.format(self.image_hash)
+            'static/tests/images/dummy-static-image',  # removed jpg extension
+            'static/tests/images/dummy-static-image.{}'.format(self.image_hash)  # removed jpg extension
         }
         self.assertEqual(command.get_needful_files(), expected_response)
 
@@ -230,7 +230,7 @@ class DeleteRedundantStaticCommandTests(StaticHashedStorageTestsMixin, SimpleTes
         expected_response = {
             'static/tests/css/style.{}.css'.format(self.style_hash),
             'static/tests/css/font.{}.css'.format(self.font_hash),
-            'static/tests/images/dummy-static-image.{}.jpg'.format(self.image_hash)
+            'static/tests/images/dummy-static-image.{}'.format(self.image_hash)  # removed jpg extension
         }
         self.assertEqual(command.get_needful_files(), expected_response)
 
@@ -241,3 +241,39 @@ class DeleteRedundantStaticCommandTests(StaticHashedStorageTestsMixin, SimpleTes
             self.assertIn('There is no file to delete.', output)
         finally:
             DeleteRedundantStaticCommand.TAG = app_settings.STATIC_TAG
+
+    def test_command_doesnt_remove_anything_when_only_needful_file_is_uploaded(self):
+        command = DeleteRedundantStaticCommand()
+        uploaded_resources = [
+            (RESOURCE_TYPES['RAW'], ['style.css']),
+            (RESOURCE_TYPES['IMAGE'], []),
+            (RESOURCE_TYPES['VIDEO'], [])
+        ]
+        needful_files = {'style.css'}
+        with mock.patch.object(command, 'get_uploaded_resources', return_value=uploaded_resources):
+            with mock.patch.object(command, 'get_needful_files', return_value=needful_files):
+                files_to_remove = command.get_files_to_remove()
+        expected_response = {
+            RESOURCE_TYPES['RAW']: set(),
+            RESOURCE_TYPES['IMAGE']: set(),
+            RESOURCE_TYPES['VIDEO']: set()
+        }
+        self.assertEqual(files_to_remove, expected_response)
+
+    def test_command_removes_not_needed_file(self):
+        command = DeleteRedundantStaticCommand()
+        uploaded_resources = [
+            (RESOURCE_TYPES['RAW'], ['style1.css']),
+            (RESOURCE_TYPES['IMAGE'], []),
+            (RESOURCE_TYPES['VIDEO'], [])
+        ]
+        needful_files = {'style.css'}
+        with mock.patch.object(command, 'get_uploaded_resources', return_value=uploaded_resources):
+            with mock.patch.object(command, 'get_needful_files', return_value=needful_files):
+                files_to_remove = command.get_files_to_remove()
+        expected_response = {
+            RESOURCE_TYPES['RAW']: {'style1.css'},
+            RESOURCE_TYPES['IMAGE']: set(),
+            RESOURCE_TYPES['VIDEO']: set()
+        }
+        self.assertEqual(files_to_remove, expected_response)

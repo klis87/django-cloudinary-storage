@@ -48,8 +48,10 @@ class Command(deleteorphanedmedia.Command):
             needful_files = {self.storage.clean_name(file) for file in needful_files}
         else:
             needful_files = set(manifest.values())
-        return {self.storage._prepend_prefix(file) for file in needful_files}
+        return {self.process_file(file) for file in needful_files}
 
+    def process_file(self, file):
+        return self.storage._remove_extension_for_non_raw_file(self.storage._prepend_prefix(file))
 
     def handle(self, *args, **options):
         if self.storage.read_manifest() is None:
