@@ -10,7 +10,7 @@ long_description = ('Django Cloudinary Storage is a Django package that facilita
 
 setup(
     name='django-cloudinary-storage',
-    version='0.2.0',
+    version='0.2.1',
     author='Konrad Lisiczynski',
     author_email='klisiczynski@gmail.com',
     description=description,
@@ -42,6 +42,7 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
         'Topic :: Internet :: WWW/HTTP',
     ]
 )
