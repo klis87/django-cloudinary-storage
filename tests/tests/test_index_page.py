@@ -57,5 +57,3 @@ class IndexPageTestsWithStaticHashedStorageWithManifestTests(StaticHashedStorage
     def test_manifest_has_correct_content(self):
         self.assertIn('tests/css/style.css', self.manifest)
         self.assertIn('tests/css/style.{}.css'.format(self.style_hash), self.manifest)
-        self.assertIn('tests/css/font.css', self.manifest)
-        self.assertIn('tests/css/font.{}.css'.format(self.font_hash), self.manifest)

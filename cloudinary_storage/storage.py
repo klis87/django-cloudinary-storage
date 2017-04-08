@@ -276,7 +276,7 @@ class HashCloudinaryMixin(object):
         self.manifest_storage = ManifestCloudinaryStorage()
         super(HashCloudinaryMixin, self).__init__(*args, **kwargs)
 
-    def hashed_name(self, name, content=None):
+    def hashed_name(self, name, content=None, filename=None):
         parsed_name = urlsplit(unquote(name))
         clean_name = parsed_name.path.strip()
         opened = False

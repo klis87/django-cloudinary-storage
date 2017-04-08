@@ -2,7 +2,7 @@ Django Cloudinary Storage
 =========================
 
 Django Cloudinary Storage is a Django package that facilitates integration with [Cloudinary](http://cloudinary.com/)
-by implementing [Django Storage API](https://docs.djangoproject.com/en/1.10/howto/custom-file-storage/).
+by implementing [Django Storage API](https://docs.djangoproject.com/en/1.11/howto/custom-file-storage/).
 With several lines of configuration, you can start using Cloudinary for both media and static files.
 Also, it provides management commands for removing unnecessary files, so any cleanup will be a breeze.
 It uses [pycloudinary](https://github.com/cloudinary/pycloudinary) package under the hood.
@@ -334,11 +334,11 @@ Then, just run:
 ```
 $ tox
 ```
-which will execute tests for Python 2.7, 3.4 - 3,5 and Django 1.8 - 1.10. At the end you will see coverage report
+which will execute tests for Python 2.7, 3.4 - 3,5 and Django 1.8 - 1.11. At the end you will see coverage report
 in your console. HTML version of this report will be available in `./htmlcov/index.html` file.
 
-If you only need to run tests for your environment, add `-e` argument to `tox` command in `{py27,py34,py35}-dj{18,19,110}`
-format, for example:
+If you only need to run tests for your environment, add `-e` argument to `tox` command in
+`{py27,py34,py35}-dj{18,19,110,111}` format, for example:
 ```
 $ tox -e py34-dj110
 ```
