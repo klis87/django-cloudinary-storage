@@ -334,11 +334,12 @@ Then, just run:
 ```
 $ tox
 ```
-which will execute tests for Python 2.7, 3.4 - 3,5 and Django 1.8 - 1.11. At the end you will see coverage report
-in your console. HTML version of this report will be available in `./htmlcov/index.html` file.
+which will execute tests for Python 2.7, 3.4 - 3,5 and Django 1.8 - 1.11 (and additionally for Python 3.6 and Django 1.11).
+At the end you will see coverage report in your console. HTML version of this report will be available in `./htmlcov/index.html`
+file.
 
 If you only need to run tests for your environment, add `-e` argument to `tox` command in
-`{py27,py34,py35}-dj{18,19,110,111}` format, for example:
+`{py27,py34,py35}-dj{18,19,110,111}` format (plus `py36-dj111`), for example:
 ```
 $ tox -e py34-dj110
 ```
