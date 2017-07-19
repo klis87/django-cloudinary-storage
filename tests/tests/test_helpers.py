@@ -71,7 +71,7 @@ def get_save_calls_counter_in_postprocess_of_adjustable_file():
     Hopefully this will be removed at some point once Django introduces optimization
     of postprocess handler.
     """
-    if version.get_version() == '1.11':
+    if version.get_complete_version() >= (1, 11):
         return 4
     return 1
 
@@ -81,6 +81,6 @@ def get_postprocess_counter_of_adjustable_file():
     Since Django 1.11, postprocess algorythm has been changed for css files
     is such a way that they are postprocessed twice.
     """
-    if version.get_version() == '1.11':
+    if version.get_complete_version() >= (1, 11):
         return 2
     return 1
