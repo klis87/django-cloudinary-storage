@@ -83,3 +83,5 @@ STATIC_VIDEOS_EXTENSIONS = user_settings.get('STATIC_VIDEOS_EXTENSIONS',
 
 # used only on Windows, see https://github.com/ahupp/python-magic#dependencies for your reference
 MAGIC_FILE_PATH = user_settings.get('MAGIC_FILE_PATH', 'magic')
+
+PREFIX = user_settings.get('PREFIX', settings.MEDIA_URL)

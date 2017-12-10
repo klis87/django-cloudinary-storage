@@ -110,7 +110,7 @@ class MediaCloudinaryStorage(Storage):
         return path
 
     def _get_prefix(self):
-        return settings.MEDIA_URL
+        return app_settings.PREFIX
 
     def _prepend_prefix(self, name):
         prefix = self._get_prefix().lstrip('/')
