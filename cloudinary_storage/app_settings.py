@@ -1,10 +1,14 @@
 from operator import itemgetter
 import os
+import sys
 
 import cloudinary
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
+from django.dispatch import receiver
+from django.test.signals import setting_changed
+from django.utils.six.moves import reload_module
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 user_settings = getattr(settings, 'CLOUDINARY_STORAGE', {})
@@ -85,3 +89,10 @@ STATIC_VIDEOS_EXTENSIONS = user_settings.get('STATIC_VIDEOS_EXTENSIONS',
 MAGIC_FILE_PATH = user_settings.get('MAGIC_FILE_PATH', 'magic')
 
 PREFIX = user_settings.get('PREFIX', settings.MEDIA_URL)
+
+
+@receiver(setting_changed)
+def reload_settings(*args, **kwargs):
+    setting_name, value = kwargs['setting'], kwargs['value']
+    if setting_name in ['CLOUDINARY_STORAGE', 'MEDIA_URL']:
+        reload_module(sys.modules[__name__])
