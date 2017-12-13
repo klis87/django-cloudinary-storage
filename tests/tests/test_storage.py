@@ -123,6 +123,10 @@ class CloudinaryMediaStorageTests(SimpleTestCase):
         finally:
             self.storage.delete(file_name)
 
+    def test_prefix_configuration(self):
+        with override_settings(CLOUDINARY_STORAGE={'PREFIX': 'test/prefix'}):
+            self.assertEqual(self.storage._get_prefix(), 'test/prefix')
+            self.assertTrue(self.storage._prepend_prefix('filename').startswith('test/prefix'))
 
     @classmethod
     def tearDownClass(cls):

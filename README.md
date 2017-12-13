@@ -281,6 +281,8 @@ Below you can see all available settings with default values:
 ```python
 import os
 
+from django.conf import settings
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 CLOUDINARY_STORAGE = {
@@ -298,6 +300,7 @@ CLOUDINARY_STORAGE = {
     'STATIC_VIDEOS_EXTENSIONS': ['mp4', 'webm', 'flv', 'mov', 'ogv' ,'3gp' ,'3g2' ,'wmv' ,
                                  'mpeg' ,'flv' ,'mkv' ,'avi'],
     'MAGIC_FILE_PATH': 'magic',
+    'PREFIX': settings.MEDIA_URL
 }
 ```
 `CLOUD_NAME`, `API_KEY` and `API_SECRET` are mandatory and you need to define them in `CLOUDINARY_STORAGE` dictionary
@@ -319,6 +322,8 @@ is the default location
 - `STATIC_VIDEOS_EXTENSIONS` - list of file extensions with which static files will be uploaded as Cloudinary videos
 - `MAGIC_FILE_PATH`: applicable only for Windows, needed for python-magic library for movie validation, please see
 [python-magic](https://github.com/ahupp/python-magic#dependencies) for reference
+- `PREFIX` - prefix to your all files uploaded by `MediaCloudinaryStorage`, default `MEDIA_URL`, it can be useful when
+you use `FileSystemStorage` as default and `MediaCloudinaryStorage` for some models fields
 
 How to run tests
 ----------------

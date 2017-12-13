@@ -1,9 +1,10 @@
 import os
 
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, override_settings
 from django.core.exceptions import ImproperlyConfigured
 
 from cloudinary_storage.app_settings import set_credentials
+from cloudinary_storage import app_settings
 from .test_helpers import import_mock
 
 mock = import_mock()
@@ -65,3 +66,11 @@ class SetCredentialsWithEnvVariablesTests(SimpleTestCase):
     def test_CLOUDINARY_URL_env_variable_doesnt_raise_error(self, config_mock):
         set_credentials({})
         self.assertFalse(config_mock.called)
+
+
+class OverrideSettingsTests(SimpleTestCase):
+    def test_override_settings(self):
+        old_value = app_settings.MEDIA_TAG
+        with override_settings(CLOUDINARY_STORAGE={'MEDIA_TAG': 'test'}):
+            self.assertEqual(app_settings.MEDIA_TAG, 'test')
+        self.assertEqual(app_settings.MEDIA_TAG, old_value)
