@@ -1,5 +1,5 @@
 from django.core.management import CommandError
-from django.utils.six import PY3
+from six import PY3
 
 from cloudinary_storage.storage import StaticHashedCloudinaryStorage, RESOURCE_TYPES
 from cloudinary_storage import app_settings

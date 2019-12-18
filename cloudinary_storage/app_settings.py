@@ -8,7 +8,7 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.dispatch import receiver
 from django.test.signals import setting_changed
-from django.utils.six.moves import reload_module
+from six.moves import reload_module
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 user_settings = getattr(settings, 'CLOUDINARY_STORAGE', {})

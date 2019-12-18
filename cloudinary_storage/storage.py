@@ -14,8 +14,8 @@ from django.utils.deconstruct import deconstructible
 from django.conf import settings
 from django.contrib.staticfiles.storage import HashedFilesMixin, ManifestFilesMixin
 from django.contrib.staticfiles import finders
-from django.utils.six.moves.urllib.parse import urlsplit, urlunsplit, unquote
-from django.utils.six import get_method_function, PY3
+from six.moves.urllib.parse import urlsplit, urlunsplit, unquote
+from six import get_method_function, PY3
 
 from . import app_settings
 from .helpers import get_resources_by_path
