@@ -4,7 +4,7 @@ import errno
 
 from django.core.files import File
 from django.core.management import call_command
-from django.utils.six import StringIO
+from six import StringIO
 from django.utils import version
 
 from cloudinary_storage import app_settings

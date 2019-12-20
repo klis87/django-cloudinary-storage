@@ -7,6 +7,11 @@ With several lines of configuration, you can start using Cloudinary for both med
 Also, it provides management commands for removing unnecessary files, so any cleanup will be a breeze.
 It uses [pycloudinary](https://github.com/cloudinary/pycloudinary) package under the hood.
 
+[![Build Status](https://travis-ci.org/tiagocordeiro/django-cloudinary-storage.svg?branch=master)](https://travis-ci.org/tiagocordeiro/django-cloudinary-storage)
+[![Updates](https://pyup.io/repos/github/tiagocordeiro/django-cloudinary-storage/shield.svg)](https://pyup.io/repos/github/tiagocordeiro/django-cloudinary-storage/)
+[![Python 3](https://pyup.io/repos/github/tiagocordeiro/django-cloudinary-storage/python-3-shield.svg)](https://pyup.io/repos/github/tiagocordeiro/django-cloudinary-storage/)
+[![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/tiagocordeiro/django-cloudinary-storage/blob/master/LICENSE)
+
 Table of content
 -----------------
 
