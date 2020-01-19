@@ -157,37 +157,40 @@ class CollectStaticCommandTests(SimpleTestCase):
             self.assertIn('2 static files copied.', output)
 
 
-# @override_settings(STATICFILES_STORAGE='cloudinary_storage.storage.StaticHashedCloudinaryStorage')
-# @mock.patch.object(StaticHashedCloudinaryStorage, '_save')
-# class CollectStaticCommandWithHashedStorageTests(SimpleTestCase):
-#     @mock.patch.object(StaticHashedCloudinaryStorage, 'save_manifest')
-#     def test_command_saves_hashed_static_files(self, save_manifest_mock, save_mock):
-#         output = execute_command('collectstatic', '--noinput')
-#         self.assertEqual(save_mock.call_count, 1 * get_save_calls_counter_in_postprocess_of_adjustable_file() + 1)
-#         for file in STATIC_FILES:
-#             self.assertIn(file, output)
-#         post_process_counter = 1 + 1 * get_postprocess_counter_of_adjustable_file()
-#         self.assertIn('0 static files copied, {} post-processed.'.format(post_process_counter), output)
-#
-#     @mock.patch.object(StaticHashedCloudinaryStorage, 'save_manifest')
-#     def test_command_saves_unhashed_static_files_with_upload_unhashed_files_arg(self, save_manifest_mock, save_mock):
-#         output = execute_command('collectstatic', '--noinput', '--upload-unhashed-files')
-#         self.assertEqual(save_mock.call_count, 2 + 1 + 1 * get_save_calls_counter_in_postprocess_of_adjustable_file())
-#         for file in STATIC_FILES:
-#             self.assertIn(file, output)
-#         post_process_counter = 1 + 1 * get_postprocess_counter_of_adjustable_file()
-#         self.assertIn('2 static files copied, {} post-processed.'.format(post_process_counter), output)
-#
-#     def test_command_saves_manifest_file(self, save_mock):
-#         name = get_random_name()
-#         StaticHashedCloudinaryStorage.manifest_name = name
-#         execute_command('collectstatic', '--noinput')
-#         try:
-#             manifest_path = os.path.join(app_settings.STATICFILES_MANIFEST_ROOT, name)
-#             self.assertTrue(os.path.exists(manifest_path))
-#             os.remove(manifest_path)
-#         finally:
-#             StaticHashedCloudinaryStorage.manifest_name = 'staticfiles.json'
+@override_settings(STATICFILES_STORAGE='cloudinary_storage.storage.StaticHashedCloudinaryStorage')
+@mock.patch.object(StaticHashedCloudinaryStorage, '_save')
+class CollectStaticCommandWithHashedStorageTests(SimpleTestCase):
+    @mock.patch.object(StaticHashedCloudinaryStorage, 'save_manifest')
+    def test_command_saves_hashed_static_files(self, save_manifest_mock, save_mock):
+        output = execute_command('collectstatic', '--noinput')
+        self.assertEqual(save_mock.call_count, 1 * get_save_calls_counter_in_postprocess_of_adjustable_file() + 1)
+        if version.get_complete_version() <= (2, 0):
+            for file in STATIC_FILES:
+                self.assertIn(file, output)
+        post_process_counter = 1 + 1 * get_postprocess_counter_of_adjustable_file()
+        self.assertIn('0 static files copied, {} post-processed.'.format(post_process_counter), output)
+
+    @mock.patch.object(StaticHashedCloudinaryStorage, 'save_manifest')
+    def test_command_saves_unhashed_static_files_with_upload_unhashed_files_arg(self, save_manifest_mock, save_mock):
+        output = execute_command('collectstatic', '--noinput', '--upload-unhashed-files')
+        self.assertEqual(save_mock.call_count, 2 + 1 + 1 * get_save_calls_counter_in_postprocess_of_adjustable_file())
+        if version.get_complete_version() <= (2, 0):
+            for file in STATIC_FILES:
+                self.assertIn(file, output)
+        post_process_counter = 1 + 1 * get_postprocess_counter_of_adjustable_file()
+        self.assertIn('2 static files copied, {} post-processed.'.format(post_process_counter), output)
+
+    # TODO: Make this test work in Django >= 2
+    # def test_command_saves_manifest_file(self, save_mock):
+    #     name = get_random_name()
+    #     StaticHashedCloudinaryStorage.manifest_name = name
+    #     execute_command('collectstatic', '--noinput')
+    #     try:
+    #         manifest_path = os.path.join(app_settings.STATICFILES_MANIFEST_ROOT, name)
+    #         self.assertTrue(os.path.exists(manifest_path))
+    #         os.remove(manifest_path)
+    #     finally:
+    #         StaticHashedCloudinaryStorage.manifest_name = 'staticfiles.json'
 
 
 @override_settings(STATICFILES_STORAGE='cloudinary_storage.storage.StaticHashedCloudinaryStorage')

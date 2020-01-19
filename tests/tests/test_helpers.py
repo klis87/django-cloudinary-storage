@@ -71,6 +71,8 @@ def get_save_calls_counter_in_postprocess_of_adjustable_file():
     Hopefully this will be removed at some point once Django introduces optimization
     of postprocess handler.
     """
+    if version.get_complete_version() >= (3, 0):
+        return 2
     if version.get_complete_version() >= (1, 11):
         return 4
     return 1
