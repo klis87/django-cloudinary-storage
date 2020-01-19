@@ -1,8 +1,7 @@
 from django.core.management import CommandError
-from six import PY3
 
-from cloudinary_storage.storage import StaticHashedCloudinaryStorage, RESOURCE_TYPES
 from cloudinary_storage import app_settings
+from cloudinary_storage.storage import StaticHashedCloudinaryStorage, RESOURCE_TYPES
 from . import deleteorphanedmedia
 
 
@@ -41,10 +40,7 @@ class Command(deleteorphanedmedia.Command):
         """
         manifest = self.storage.load_manifest()
         if self.keep_unhashed_files:
-            if PY3:
-                needful_files = set(manifest.keys() | manifest.values())
-            else:
-                needful_files = set(manifest.keys() + manifest.values())
+            needful_files = set(manifest.keys() | manifest.values())
             needful_files = {self.storage.clean_name(file) for file in needful_files}
         else:
             needful_files = set(manifest.values())

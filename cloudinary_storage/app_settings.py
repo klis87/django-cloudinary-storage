@@ -1,14 +1,13 @@
-from operator import itemgetter
+import importlib
 import os
 import sys
+from operator import itemgetter
 
 import cloudinary
-
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.dispatch import receiver
 from django.test.signals import setting_changed
-from six.moves import reload_module
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 user_settings = getattr(settings, 'CLOUDINARY_STORAGE', {})
@@ -95,4 +94,4 @@ PREFIX = user_settings.get('PREFIX', settings.MEDIA_URL)
 def reload_settings(*args, **kwargs):
     setting_name, value = kwargs['setting'], kwargs['value']
     if setting_name in ['CLOUDINARY_STORAGE', 'MEDIA_URL']:
-        reload_module(sys.modules[__name__])
+        importlib.reload(sys.modules[__name__])
