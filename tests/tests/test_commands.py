@@ -180,17 +180,18 @@ class CollectStaticCommandWithHashedStorageTests(SimpleTestCase):
         post_process_counter = 1 + 1 * get_postprocess_counter_of_adjustable_file()
         self.assertIn('2 static files copied, {} post-processed.'.format(post_process_counter), output)
 
-    # TODO: Make this test work in Django >= 2
-    # def test_command_saves_manifest_file(self, save_mock):
-    #     name = get_random_name()
-    #     StaticHashedCloudinaryStorage.manifest_name = name
-    #     execute_command('collectstatic', '--noinput')
-    #     try:
-    #         manifest_path = os.path.join(app_settings.STATICFILES_MANIFEST_ROOT, name)
-    #         self.assertTrue(os.path.exists(manifest_path))
-    #         os.remove(manifest_path)
-    #     finally:
-    #         StaticHashedCloudinaryStorage.manifest_name = 'staticfiles.json'
+
+class CollectStaticCommandWithHashedStorageWithoutMockTests(SimpleTestCase):
+    def test_command_saves_manifest_file(self):
+        name = get_random_name()
+        StaticHashedCloudinaryStorage.manifest_name = name
+        execute_command('collectstatic', '--noinput')
+        try:
+            manifest_path = os.path.join(app_settings.STATICFILES_MANIFEST_ROOT, name)
+            self.assertTrue(os.path.exists(manifest_path))
+            os.remove(manifest_path)
+        finally:
+            StaticHashedCloudinaryStorage.manifest_name = 'staticfiles.json'
 
 
 @override_settings(STATICFILES_STORAGE='cloudinary_storage.storage.StaticHashedCloudinaryStorage')
