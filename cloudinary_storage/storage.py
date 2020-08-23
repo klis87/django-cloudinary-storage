@@ -1,21 +1,19 @@
+import errno
 import json
 import os
-import errno
+from urllib.parse import unquote, urlsplit, urlunsplit
 
 import cloudinary
-import cloudinary.uploader
 import cloudinary.api
+import cloudinary.uploader
 import requests
-
-from django.core.files.base import ContentFile, File
-from django.core.files.uploadedfile import UploadedFile
-from django.core.files.storage import Storage, FileSystemStorage
-from django.utils.deconstruct import deconstructible
 from django.conf import settings
-from django.contrib.staticfiles.storage import HashedFilesMixin, ManifestFilesMixin
 from django.contrib.staticfiles import finders
-from django.utils.six.moves.urllib.parse import urlsplit, urlunsplit, unquote
-from django.utils.six import get_method_function, PY3
+from django.contrib.staticfiles.storage import HashedFilesMixin, ManifestFilesMixin
+from django.core.files.base import ContentFile, File
+from django.core.files.storage import Storage, FileSystemStorage
+from django.core.files.uploadedfile import UploadedFile
+from django.utils.deconstruct import deconstructible
 
 from . import app_settings
 from .helpers import get_resources_by_path
@@ -212,8 +210,8 @@ class StaticCloudinaryStorage(MediaCloudinaryStorage):
             return name[:-len(extension) - 1]
 
     # we only need 2 methods of HashedFilesMixin, so we just copy them as function objects to avoid MRO complexities
-    file_hash = HashedFilesMixin.file_hash if PY3 else get_method_function(HashedFilesMixin.file_hash)
-    clean_name = HashedFilesMixin.clean_name if PY3 else get_method_function(HashedFilesMixin.clean_name)
+    file_hash = HashedFilesMixin.file_hash
+    clean_name = HashedFilesMixin.clean_name
 
     def _exists_with_etag(self, name, content):
         """
@@ -340,7 +338,7 @@ class HashCloudinaryMixin(object):
         self.manifest_storage._save(self.manifest_name, ContentFile(contents))
 
     # we only need 1 method of HashedFilesMixin, so we just copy it as function objects to avoid MRO complexities
-    stored_name = HashedFilesMixin.stored_name if PY3 else get_method_function(HashedFilesMixin.stored_name)
+    stored_name = HashedFilesMixin.stored_name
 
 
 class StaticHashedCloudinaryStorage(HashCloudinaryMixin, ManifestFilesMixin, StaticCloudinaryStorage):

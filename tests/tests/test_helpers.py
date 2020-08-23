@@ -1,15 +1,15 @@
-from uuid import uuid4
-import os
 import errno
+import os
+from io import StringIO
+from uuid import uuid4
 
 from django.core.files import File
 from django.core.management import call_command
-from django.utils.six import StringIO
 from django.utils import version
 
 from cloudinary_storage import app_settings
-from cloudinary_storage.storage import MediaCloudinaryStorage, StaticHashedCloudinaryStorage, HashedFilesMixin
 from cloudinary_storage.management.commands.deleteorphanedmedia import Command as DeleteOrphanedMediaCommand
+from cloudinary_storage.storage import MediaCloudinaryStorage, StaticHashedCloudinaryStorage, HashedFilesMixin
 
 
 def get_random_name():
@@ -71,6 +71,8 @@ def get_save_calls_counter_in_postprocess_of_adjustable_file():
     Hopefully this will be removed at some point once Django introduces optimization
     of postprocess handler.
     """
+    if version.get_complete_version() >= (3, 0):
+        return 2
     if version.get_complete_version() >= (1, 11):
         return 4
     return 1

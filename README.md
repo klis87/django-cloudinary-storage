@@ -7,6 +7,12 @@ With several lines of configuration, you can start using Cloudinary for both med
 Also, it provides management commands for removing unnecessary files, so any cleanup will be a breeze.
 It uses [pycloudinary](https://github.com/cloudinary/pycloudinary) package under the hood.
 
+[![Build Status](https://travis-ci.org/tiagocordeiro/django-cloudinary-storage.svg?branch=master)](https://travis-ci.org/tiagocordeiro/django-cloudinary-storage)
+[![Updates](https://pyup.io/repos/github/tiagocordeiro/django-cloudinary-storage/shield.svg)](https://pyup.io/repos/github/tiagocordeiro/django-cloudinary-storage/)
+[![Python 3](https://pyup.io/repos/github/tiagocordeiro/django-cloudinary-storage/python-3-shield.svg)](https://pyup.io/repos/github/tiagocordeiro/django-cloudinary-storage/)
+[![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/tiagocordeiro/django-cloudinary-storage/blob/master/LICENSE)
+[![codecov](https://codecov.io/gh/tiagocordeiro/django-cloudinary-storage/branch/master/graph/badge.svg)](https://codecov.io/gh/tiagocordeiro/django-cloudinary-storage)
+
 Table of content
 -----------------
 
@@ -210,7 +216,7 @@ It is highly recommended to keep up-to-date version of this file in your version
 
 In order to use static files from Cloudinary, make sure you write your templates in below style:
 ```django
-{% load static from staticfiles %}
+{% load static %}
 <link rel="stylesheet" href="{% static 'css/style.css' %}">
 <img src="{% static 'images/dummy-static-image.jpg' %}" alt="dummy static image">
 ```

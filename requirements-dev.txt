@@ -1,0 +1,8 @@
+tox>=2.3.1
+Django>=1.11
+Pillow>=3.3.0
+tox-pyenv>=1.1.0
+tox-travis>=0.12
+pluggy>=0.13.1
+
+-r requirements.txt

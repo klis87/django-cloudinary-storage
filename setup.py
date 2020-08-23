@@ -1,12 +1,23 @@
+import codecs
+import os
+from os import path
+
 from setuptools import setup
+
+
+def read(fname):
+    return codecs.open(os.path.join(os.path.dirname(__file__), fname)).read()
+
 
 description = ('Django package that provides Cloudinary storages for both media and static files '
                'as well as management commands for removing unnecessary files.')
 
-long_description = ('Django Cloudinary Storage is a Django package that facilitates integration with Cloudinary '
-                    'by implementing Django Storage API. With several lines of configuration, you can start using '
-                    'Cloudinary for both media and static files. Also, it provides management commands for removing '
-                    'unnecessary files, so any cleanup will be a breeze. It uses pycloudinary package under the hood.')
+
+here = path.abspath(path.dirname(__file__))
+
+# Get the long description from the README file
+with open(path.join(here, 'README.md'), encoding='utf-8') as f:
+    long_description = f.read()
 
 setup(
     name='django-cloudinary-storage',
@@ -15,6 +26,7 @@ setup(
     author_email='klisiczynski@gmail.com',
     description=description,
     long_description=long_description,
+    long_description_content_type='text/markdown',
     license='MIT',
     url='https://github.com/klis87/django-cloudinary-storage',
     keywords='django cloudinary storage',
@@ -37,12 +49,11 @@ setup(
         'Intended Audience :: Developers',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
         'Topic :: Internet :: WWW/HTTP',
     ]
 )
