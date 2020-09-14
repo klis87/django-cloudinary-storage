@@ -145,7 +145,7 @@ use below code:
 {% cloudinary test_model_instance.image.name width=100 height=100 %}
 ```
 
-Of cource, this only scratched the surface. Cloudinary is extremely powerful and I highly recommend you to check
+Of course, this only scratched the surface. Cloudinary is extremely powerful and I highly recommend you to check
 [pycloudinary](https://github.com/cloudinary/pycloudinary) documentation.
 
 Now, if you only need to use Cloudinary for images, you can skip the rest of this subsection.
@@ -181,7 +181,7 @@ that's why we set storage explicitly only for `raw_file`.
 
 Usage with video files is analogous to raw files, but you will need to use `validate_video` validator for video fields
 to validate user's uploaded videos. If not, Cloudinary will raise an error if a user tries to upload non-video file,
-which will crash your website. Of cource, you could use your own validator, but if you want to use built-in one,
+which will crash your website. Of course, you could use your own validator, but if you want to use built-in one,
 do it like this:
 
 ```python
