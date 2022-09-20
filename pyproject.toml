@@ -1,0 +1,48 @@
+[tool.poetry]
+name = "django-cloudinary-storage"
+version = "0.3.0"
+description = "Django package that provides Cloudinary storages for both media and static files as well as management commands for removing unnecessary files."
+authors = ["Konrad Lisiczynski <klisiczynski@gmail.com>"]
+license = "MIT"
+classifiers=[
+    'Environment :: Web Environment',
+    'Framework :: Django',
+    'Intended Audience :: Developers',
+    'Operating System :: OS Independent',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.6',
+    'Programming Language :: Python :: 3.7',
+    'Programming Language :: Python :: 3.8',
+    'Topic :: Internet :: WWW/HTTP',
+]
+keywords=["django", "cloudinary", "storage"]
+readme="README.md"
+packages = [
+    { include = "cloudinary_storage" }
+]
+
+[tool.poetry.urls]
+"homepage" = "https://github.com/klis87/django-cloudinary-storage"
+
+[tool.poetry.dependencies]
+python = "^3.6"
+requests = ">=2.10.0"
+cloudinary = ">=1.4.0"
+python-magic = {version=">=0.4.12", optional=true}
+
+[tool.poetry.dev-dependencies]
+tox = ">=2.3.1"
+Django = ">=2.2"
+Pillow = ">=3.3.0"
+tox-pyenv = ">=1.1.0"
+tox-travis = ">=0.12"
+pluggy = ">=0.13.1"
+codecov = "^2.1.9"
+
+[tool.poetry.extras]
+video = ["python-magic"]
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
