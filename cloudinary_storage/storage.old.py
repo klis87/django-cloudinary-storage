@@ -1,3 +1,6 @@
+# The original storage.py module, kept for reference, will be removed
+
+
 import errno
 import json
 import os
@@ -11,51 +14,154 @@ from django.conf import settings
 from django.contrib.staticfiles import finders
 from django.contrib.staticfiles.storage import HashedFilesMixin, ManifestFilesMixin
 from django.core.files.base import ContentFile, File
-from django.core.files.storage import FileSystemStorage
+from django.core.files.storage import Storage, FileSystemStorage
+from django.core.files.uploadedfile import UploadedFile
 from django.utils.deconstruct import deconstructible
 
-from .base import BaseStorage
+from . import app_settings
+from .helpers import get_resources_by_path
+
+RESOURCE_TYPES = {
+    'IMAGE': 'image',
+    'RAW': 'raw',
+    'VIDEO': 'video'
+}
 
 
 @deconstructible
-class MediaCloudinaryStorage(BaseStorage):
+class MediaCloudinaryStorage(Storage):
+    RESOURCE_TYPE = RESOURCE_TYPES['IMAGE']
+    TAG = app_settings.MEDIA_TAG
 
-    def __init__(self, **settings):
-        super().__init__(**settings)
-        self.TAG = self.media_tag
-        self.RESOURCE_TYPE = self.RESOURCE_TYPES['IMAGE']
+    def __init__(self, tag=None, resource_type=None):
+        if tag is not None:
+            self.TAG = tag
+        if resource_type is not None:
+            self.RESOURCE_TYPE = resource_type
+
+    def _get_resource_type(self, name):
+        """
+        Implemented to allow different resource types per file name
+        within one storage class.
+        """
+        return self.RESOURCE_TYPE
+
+    def _open(self, name, mode='rb'):
+        url = self._get_url(name)
+        response = requests.get(url)
+        if response.status_code == 404:
+            raise IOError
+        response.raise_for_status()
+        file = ContentFile(response.content)
+        file.name = name
+        file.mode = mode
+        return file
+
+    def _upload(self, name, content):
+        options = {'use_filename': True, 'resource_type': self._get_resource_type(name), 'tags': self.TAG}
+        folder = os.path.dirname(name)
+        if folder:
+            options['folder'] = folder
+        return cloudinary.uploader.upload(content, **options)
+
+    def _save(self, name, content):
+        name = self._normalise_name(name)
+        name = self._prepend_prefix(name)
+        content = UploadedFile(content, name)
+        response = self._upload(name, content)
+        return response['public_id']
+
+    def delete(self, name):
+        response = cloudinary.uploader.destroy(name, invalidate=True, resource_type=self._get_resource_type(name))
+        return response['result'] == 'ok'
+
+    def _get_url(self, name):
+        name = self._prepend_prefix(name)
+        cloudinary_resource = cloudinary.CloudinaryResource(name, default_resource_type=self._get_resource_type(name))
+        return cloudinary_resource.url
+
+    def url(self, name):
+        return self._get_url(name)
+
+    def exists(self, name):
+        url = self._get_url(name)
+        response = requests.head(url)
+        if response.status_code == 404:
+            return False
+        response.raise_for_status()
+        return True
+
+    def size(self, name):
+        url = self._get_url(name)
+        response = requests.head(url)
+        if response.status_code == 200:
+            return int(response.headers['content-length'])
+        else:
+            return None
+
+    def get_available_name(self, name, max_length=None):
+        if max_length is None:
+            return name
+        else:
+            return name[:max_length]
+
+    def _normalize_path(self, path):
+        if path != '' and not path.endswith('/'):
+            path += '/'
+        return path
+
+    def _get_prefix(self):
+        return app_settings.PREFIX
+
+    def _prepend_prefix(self, name):
+        prefix = self._get_prefix().lstrip('/')
+        prefix = self._normalize_path(prefix)
+        if not name.startswith(prefix):
+            name = prefix + name
+        return name
+
+    def listdir(self, path):
+        path = self._normalize_path(path)
+        resources = get_resources_by_path(self.RESOURCE_TYPE, self.TAG, path)
+        directories = set()
+        files = []
+        for resource in resources:
+            resource_tail = resource.replace(path, '', 1)
+            if '/' in resource_tail:
+                directory = resource_tail.split('/', 1)[0]
+                directories.add(directory)
+            else:
+                files.append(resource_tail)
+        return list(directories), files
+
+    def _normalise_name(self, name):
+        return name.replace('\\', '/')
 
 
 class RawMediaCloudinaryStorage(MediaCloudinaryStorage):
-    def __init__(self, **settings):
-        super().__init__(**settings)
-        self.RESOURCE_TYPE = self.RESOURCE_TYPES['RAW']
+    RESOURCE_TYPE = RESOURCE_TYPES['RAW']
 
 
 class VideoMediaCloudinaryStorage(MediaCloudinaryStorage):
-    def __init__(self, **settings):
-        super().__init__(**settings)
-        self.RESOURCE_TYPE = self.RESOURCE_TYPES['VIDEO']
+    RESOURCE_TYPE = RESOURCE_TYPES['VIDEO']
 
 
-# storages_per_type = {
-#     RESOURCE_TYPES['IMAGE']: MediaCloudinaryStorage(),
-#     RESOURCE_TYPES['RAW']: RawMediaCloudinaryStorage(),
-#     RESOURCE_TYPES['VIDEO']: VideoMediaCloudinaryStorage(),
-# }
+storages_per_type = {
+    RESOURCE_TYPES['IMAGE']: MediaCloudinaryStorage(),
+    RESOURCE_TYPES['RAW']: RawMediaCloudinaryStorage(),
+    RESOURCE_TYPES['VIDEO']: VideoMediaCloudinaryStorage(),
+}
 
 
-class StaticCloudinaryStorage(BaseStorage):
+class StaticCloudinaryStorage(MediaCloudinaryStorage):
     """
     Base storage for staticfiles kept in Cloudinary.
     Uploads only unhashed files, so it is highly unrecommended to use it directly,
     because static files are cached both by Cloudinary CDN and browsers
     and changing files could become problematic.
     """
-    def __init__(self, **settings):
-        self.RESOURCE_TYPE = self.RESOURCE_TYPES['RAW']
-        super().__init__(**settings)
-        self.TAG = self.static_tag
+    RESOURCE_TYPE = RESOURCE_TYPES['RAW']
+    TAG = app_settings.STATIC_TAG
 
     def _get_resource_type(self, name):
         """
@@ -66,10 +172,10 @@ class StaticCloudinaryStorage(BaseStorage):
         extension = self._get_file_extension(name)
         if extension is None:
             return self.RESOURCE_TYPE
-        elif extension in self.static_images_extensions:
-            return self.RESOURCE_TYPES['IMAGE']
-        elif extension in self.static_videos_extensions:
-            return self.RESOURCE_TYPES['VIDEO']
+        elif extension in app_settings.STATIC_IMAGES_EXTENSIONS:
+            return RESOURCE_TYPES['IMAGE']
+        elif extension in app_settings.STATIC_VIDEOS_EXTENSIONS:
+            return RESOURCE_TYPES['VIDEO']
         else:
             return self.RESOURCE_TYPE
 
@@ -162,13 +268,14 @@ class ManifestCloudinaryStorage(FileSystemStorage):
     including Heroku and AWS Elastic Beanstalk.
     """
     def __init__(self, location=None, base_url=None, *args, **kwargs):
-        super().__init__(location, base_url, *args, **kwargs)
+        location = app_settings.STATICFILES_MANIFEST_ROOT if location is None else location
+        super(ManifestCloudinaryStorage, self).__init__(location, base_url, *args, **kwargs)
 
 
 class HashCloudinaryMixin(object):
     def __init__(self, *args, **kwargs):
+        self.manifest_storage = ManifestCloudinaryStorage()
         super(HashCloudinaryMixin, self).__init__(*args, **kwargs)
-        self.manifest_storage = ManifestCloudinaryStorage(location = self.staticfiles_manifest_root)
 
     def hashed_name(self, name, content=None, filename=None):
         parsed_name = urlsplit(unquote(name))
@@ -237,9 +344,5 @@ class HashCloudinaryMixin(object):
     stored_name = HashedFilesMixin.stored_name
 
 
-class StaticHashedCloudinaryStorage(
-        HashCloudinaryMixin,
-        ManifestFilesMixin,
-        StaticCloudinaryStorage
-    ):
+class StaticHashedCloudinaryStorage(HashCloudinaryMixin, ManifestFilesMixin, StaticCloudinaryStorage):
     pass

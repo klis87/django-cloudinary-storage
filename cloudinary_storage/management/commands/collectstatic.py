@@ -1,4 +1,5 @@
 from django.contrib.staticfiles.management.commands import collectstatic
+from django.core.files.storage import storages
 from django.conf import settings
 
 
@@ -24,6 +25,6 @@ class Command(collectstatic.Command):
         Overwritten to execute only with --upload-unhashed-files param or StaticCloudinaryStorage.
         Otherwise only hashed files will be uploaded during postprocessing.
         """
-        if (settings.STATICFILES_STORAGE == 'cloudinary_storage.storage.StaticCloudinaryStorage' or
+        if (storages['staticfiles'] == 'cloudinary_storage.storage.StaticCloudinaryStorage' or
                 self.upload_unhashed_files):
             super(Command, self).copy_file(path, prefixed_path, source_storage)
