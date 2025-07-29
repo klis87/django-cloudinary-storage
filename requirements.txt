@@ -1,3 +1,0 @@
-cloudinary>=1.4.0
-python-magic>=0.4.12
-requests>=2.10.0

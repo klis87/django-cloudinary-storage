@@ -29,7 +29,7 @@ It uses [pycloudinary](https://github.com/cloudinary/pycloudinary) package under
 
 ## Requirements
 
-The package requires Python 3.4+ and Django 1.8+. It has been tested on Linux, Windows and Mac OS X.
+The package requires Python 3.6+ and Django 2.2+. It has been tested on Linux, Windows and Mac OS X.
 
 ## Installation
 
