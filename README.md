@@ -1,16 +1,14 @@
 # Django Cloudinary Storage
 
 Django Cloudinary Storage is a Django package that facilitates integration with [Cloudinary](http://cloudinary.com/)
-by implementing [Django Storage API](https://docs.djangoproject.com/en/1.11/howto/custom-file-storage/).
+by implementing [Django Storage API](https://docs.djangoproject.com/en/stable/howto/custom-file-storage/).
 With several lines of configuration, you can start using Cloudinary for both media and static files.
 Also, it provides management commands for removing unnecessary files, so any cleanup will be a breeze.
 It uses [pycloudinary](https://github.com/cloudinary/pycloudinary) package under the hood.
 
-[![Build Status](https://travis-ci.org/tiagocordeiro/django-cloudinary-storage.svg?branch=master)](https://travis-ci.org/tiagocordeiro/django-cloudinary-storage)
-[![Updates](https://pyup.io/repos/github/tiagocordeiro/django-cloudinary-storage/shield.svg)](https://pyup.io/repos/github/tiagocordeiro/django-cloudinary-storage/)
-[![Python 3](https://pyup.io/repos/github/tiagocordeiro/django-cloudinary-storage/python-3-shield.svg)](https://pyup.io/repos/github/tiagocordeiro/django-cloudinary-storage/)
-[![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/tiagocordeiro/django-cloudinary-storage/blob/master/LICENSE)
-[![codecov](https://codecov.io/gh/tiagocordeiro/django-cloudinary-storage/branch/master/graph/badge.svg)](https://codecov.io/gh/tiagocordeiro/django-cloudinary-storage)
+[![PyPI](https://img.shields.io/pypi/v/django-cloudinary-storage.svg)](https://pypi.org/project/django-cloudinary-storage/)
+[![Python versions](https://img.shields.io/pypi/pyversions/django-cloudinary-storage.svg)](https://pypi.org/project/django-cloudinary-storage/)
+[![License](https://img.shields.io/pypi/l/django-cloudinary-storage.svg)](https://github.com/klis87/django-cloudinary-storage/blob/master/LICENSE)
 
 ## Table of content
 
@@ -21,15 +19,15 @@ It uses [pycloudinary](https://github.com/cloudinary/pycloudinary) package under
   - [Usage with video files](#usage-with-video-files)
 - [Usage with static files](#usage-with-static-files)
 - [Management commands](#management-commands)
-  - [collectstatic](#collectstatic)
   - [deleteorphanedmedia](#deleteorphanedmedia)
   - [deleteredundantstatic](#deleteredundantstatic)
 - [Settings](#settings)
+- [Upgrading from 0.3](#upgrading-from-03)
 - [How to run tests](#how-to-run-tests)
 
 ## Requirements
 
-The package requires Python 3.4+ and Django 1.8+. It has been tested on Linux, Windows and Mac OS X.
+The package requires Python 3.10+ and Django 4.2+.
 
 ## Installation
 
@@ -53,21 +51,7 @@ Also, in case you use Django `ImageField`, make sure you have Pillow installed:
 $ pip install Pillow
 ```
 
-Once you have done that, add `cloudinary` and `cloudinary_storage` to you installed apps in your `settings.py`. If you
-are going to use this package for static and/or media files, make sure that `cloudinary_storage` is before `django.contrib.staticfiles`:
-
-```python
-INSTALLED_APPS = [
-    # ...
-    'cloudinary_storage',
-    'django.contrib.staticfiles',
-    'cloudinary',
-    # ...
-]
-```
-
-because django-cloudinary-storage overwrites Django `collectstatic` command. If you are going to use it only for media files
-though, it is `django.contrib.staticfiles` which has to be first:
+Once you have done that, add `cloudinary` and `cloudinary_storage` to you installed apps in your `settings.py`:
 
 ```python
 INSTALLED_APPS = [
@@ -121,20 +105,22 @@ class TestModel(models.Model):
     image = models.ImageField(upload_to='images/', blank=True)
 ```
 
-If you're using the latest version of django or version 5.1 and above, all you need to do is to define `STORAGES` dictionary in `settings.py`:
+All you need to do is to define `STORAGES` dictionary in `settings.py`:
 
 ```python
-
 STORAGES = {
-  'default': {
-    'BACKEND': 'cloudinary_storage.storage.MediaCloudinaryStorage' # or any media storage you'd like to use.
-  },
-  'staticfiles': {                                                 # this is the storage for static files
-    'BACKEND': 'django.core.files.storage.FileSystemStorage'       # this is django's default storage for static files, for using cloudinry as static files storage see usage with static files section
-  },
+    'default': {
+        'BACKEND': 'cloudinary_storage.storage.MediaCloudinaryStorage',  # or any media storage you'd like to use
+    },
+    'staticfiles': {
+        # Django default storage for static files, see "Usage with static files" to keep them in Cloudinary
+        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+    },
 }
-
 ```
+
+Please note that `STORAGES` replaces the whole default configuration, so you need to define both `default`
+and `staticfiles` storages. Old `DEFAULT_FILE_STORAGE` setting doesn't work since Django 5.1.
 
 and add `MEDIA_URL` to your `settings.py` as well:
 
@@ -143,13 +129,6 @@ MEDIA_URL = '/media/'  # or any prefix you choose
 ```
 
 And that's it! All your models with `ImageField` will be connected to Cloudinary.
-
-Now if you're using older versions of django (<5.1), just add this instead of `STORAGES` to your `settings.py` file:
-
-```python
-DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
-```
-and `MEDIA_URL` setting stays as is.
 
 Now, in order to put this image into your template, you can just type:
 
@@ -175,19 +154,15 @@ However, if you are going to use it for videos and/or raw files, let's continue.
 ### Usage with raw files
 
 If your users can upload text or other raw files, but not images, you would just use different default storage
-in `settings.py`. For django>=5.1:
+in `settings.py`:
 
 ```python
 STORAGES = {
-  'default': {
-    'BACKEND': 'cloudinary_storage.storage.RawMediaCloudinaryStorage'
-  },
-  # ...
+    'default': {
+        'BACKEND': 'cloudinary_storage.storage.RawMediaCloudinaryStorage',
+    },
+    # ...
 }
-```
-and for django<5.1:
-```python
-DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.RawMediaCloudinaryStorage'
 ```
 
 But what if they could upload both types? Well, not a problem! Just set the default file storage to the most
@@ -229,28 +204,20 @@ class TestModelWithVideoAndImage(models.Model):
 
 ## Usage with static files
 
-In order to move your static files to Cloudinary, update your `settings.py`.
-Again, for django>=5.1":
-```python
+In order to move your static files to Cloudinary, update your `settings.py`:
 
+```python
 STORAGES = {
-  'default': {
-    # your media files storage...
-  'staticfiles': {
-    'BACKEND': 'cloudinary_storage.storage.StaticHashedCloudinaryStorage'
-  },
+    'default': {
+        # your media files storage...
+    },
+    'staticfiles': {
+        'BACKEND': 'cloudinary_storage.storage.StaticHashedCloudinaryStorage',
+    },
 }
 
-```
-and for django<5.1:
-```python
-STATICFILES_STORAGE = 'cloudinary_storage.storage.StaticHashedCloudinaryStorage'
-```
-
-then add this to `settings.py` regardless of django version:
-
-```python
 STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 ```
 
 After that, run Django `collectstatic` command:
@@ -259,29 +226,41 @@ After that, run Django `collectstatic` command:
 $ python manage.py collectstatic
 ```
 
-Please note that only files with hashed name will be uploaded by default - this behavior can be changed by adding
-`--upload-unhashed-files` argument to `collectstatic` command. If you are not sure why it is useful to add hash to file
-names, shortly speaking, it allows static files to be safely cached by Cloudinary CDN and web browsers. Without it
-files' modification would become very problematic, because your website's users would use their private older copies.
-Hashing prevents this issue as any file change will change its url as well, which would force a browser to download
-a new version of a file.
+`StaticHashedCloudinaryStorage` works just like Django `ManifestStaticFilesStorage`: `collectstatic` gathers your
+static files in `STATIC_ROOT` and adds hash of their content to their names, like `css/style.a1b2c3d4e5f6.css`.
+Once it is done, the final files are uploaded to Cloudinary. Files which are already uploaded with the same content
+are skipped, so only new and modified files are uploaded, which saves both time and bandwidth. That's why `STATIC_ROOT`
+is required, but it doesn't need to exist when your website is running, it is used only by `collectstatic`.
+
+Please note that only files with hashed name will be uploaded by default - this behavior can be changed with
+`UPLOAD_UNHASHED_STATIC_FILES` setting:
+
+```python
+CLOUDINARY_STORAGE = {
+    # other settings, like credentials
+    'UPLOAD_UNHASHED_STATIC_FILES': True,
+}
+```
+
+Use it only when you need static files under constant urls, for example in HTML emails. If you are not sure why it is
+useful to add hash to file names, shortly speaking, it allows static files to be safely cached by Cloudinary CDN and
+web browsers. Without it files' modification would become very problematic, because your website's users would use
+their private older copies. Hashing prevents this issue as any file change will change its url as well, which would
+force a browser to download a new version of a file.
 
 Also, be aware that `collectstatic` will create a JSON file, which shows mapping of unhashed file names to their hashed
 versions. This file will be available at `./manifest/staticfiles.json` by default - you could change that
 in your `settings.py`, for example:
 
 ```python
-import os
-
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
 CLOUDINARY_STORAGE = {
     # other settings, like credentials
-    'STATICFILES_MANIFEST_ROOT': os.path.join(BASE_DIR, 'my-manifest-directory')
+    'STATICFILES_MANIFEST_ROOT': BASE_DIR / 'my-manifest-directory',
 }
 ```
 
-It is highly recommended to keep up-to-date version of this file in your version control system.
+It is highly recommended to keep up-to-date version of this file in your version control system, because your website
+needs it to know the names of hashed files.
 
 In order to use static files from Cloudinary, make sure you write your templates in below style:
 
@@ -290,8 +269,6 @@ In order to use static files from Cloudinary, make sure you write your templates
 <link rel="stylesheet" href="{% static 'css/style.css' %}">
 <img src="{% static 'images/dummy-static-image.jpg' %}" alt="dummy static image">
 ```
-
-In Django 1.10 and later, you could use `{% load static %}` instead of `{% load static from staticfiles %}`.
 
 If you would like to apply Cloudinary transformations for static images or videos, please use `cloudinary_static`
 template tag as follows:
@@ -313,23 +290,12 @@ Django `staticfiles` app will use your local files for easier and faster develop
 
 ## Management commands
 
-The package provides three management commands:
+The package provides two management commands:
 
-- `collectstatic`
 - `deleteorphanedmedia`
 - `deleteredundantstatic`
 
-### collectstatic
-
-Adds minor modifications to Django `collectstatic` to improve upload performance. It uploads only hashed files
-as the default. Also, it uploads a file only when necessary, namely it won't upload the file if a file with the same
-name and content will be already uploaded to Cloudinary, which will save both time and bandwidth.
-
-Optional arguments:
-
-- `--upload-unhashed-files` - uploads files without hash added to their name along with hashed ones, use it only
-  when it is really necessary
-- `--noinput` - non-interactive mode, the command won't ask you to do any confirmations
+Static files are uploaded by Django `collectstatic` command, see [Usage with static files](#usage-with-static-files).
 
 ### deleteorphanedmedia
 
@@ -349,12 +315,12 @@ Optional arguments:
 
 ### deleteredundantstatic
 
-Deletes needless static files.
+Deletes needless static files, namely all files uploaded to Cloudinary, which are not present in the current
+`staticfiles.json` manifest, so make sure it is up-to-date. Unhashed files are kept only when
+`UPLOAD_UNHASHED_STATIC_FILES` setting is `True`. The command works only with `StaticHashedCloudinaryStorage`.
 
 Optional arguments:
 
-- `--keep-unhashed-files` - use it if you use `collectstatic` with `--upload-unhashed-files` argument,
-  without it this command will always delete all unhashed files
 - `--noinput` - non-interactive mode, the command won't ask you to do any confirmations
 
 ## Settings
@@ -378,6 +344,7 @@ CLOUDINARY_STORAGE = {
     'EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS': (),
     'STATIC_TAG': 'static',
     'STATICFILES_MANIFEST_ROOT': os.path.join(BASE_DIR, 'manifest'),
+    'UPLOAD_UNHASHED_STATIC_FILES': False,
     'STATIC_IMAGES_EXTENSIONS': ['jpg', 'jpe', 'jpeg', 'jpc', 'jp2', 'j2k', 'wdp', 'jxr',
                                  'hdp', 'png', 'gif', 'webp', 'bmp', 'tif', 'tiff', 'ico'],
     'STATIC_VIDEOS_EXTENSIONS': ['mp4', 'webm', 'flv', 'mov', 'ogv' ,'3gp' ,'3g2' ,'wmv' ,
@@ -403,6 +370,8 @@ in `settings.py`, the rest could be overwritten if required, as described below:
   setting to see when it is useful
 - `STATICFILES_MANIFEST_ROOT` - path where `staticfiles.json` will be saved after `collectstatic` command, `./manifest`
   is the default location
+- `UPLOAD_UNHASHED_STATIC_FILES` - whether `collectstatic` should upload files without hash in their names
+  along with hashed ones, `False` is the default
 - `STATIC_IMAGES_EXTENSIONS` - list of file extensions with which static files will be treated as Cloudinary images
 - `STATIC_VIDEOS_EXTENSIONS` - list of file extensions with which static files will be uploaded as Cloudinary videos
 - `MAGIC_FILE_PATH`: applicable only for Windows, needed for python-magic library for movie validation, please see
@@ -410,31 +379,42 @@ in `settings.py`, the rest could be overwritten if required, as described below:
 - `PREFIX` - prefix to your all files uploaded by `MediaCloudinaryStorage`, default `MEDIA_URL`, it can be useful when
   you use `FileSystemStorage` as default and `MediaCloudinaryStorage` for some models fields
 
+## Upgrading from 0.3
+
+Version 0.4 supports Django 4.2+ and Python 3.10+. If you use Cloudinary for static files, please note that:
+
+- `STORAGES` setting must be used instead of `DEFAULT_FILE_STORAGE` and `STATICFILES_STORAGE`,
+  the old ones are removed in Django 5.1
+- `STATIC_ROOT` setting is required, as static files are collected there before they are uploaded to Cloudinary
+- the package doesn't overwrite `collectstatic` command anymore, so the order of `cloudinary_storage`
+  and `django.contrib.staticfiles` in `INSTALLED_APPS` doesn't matter
+- `--upload-unhashed-files` argument of `collectstatic` and `--keep-unhashed-files` argument
+  of `deleteredundantstatic` are replaced by `UPLOAD_UNHASHED_STATIC_FILES` setting
+- `staticfiles.json` format is changed, it will be regenerated by `collectstatic`, the first `collectstatic` after
+  the upgrade will upload all your static files again
+
+See [CHANGELOG](CHANGELOG.md) for all changes.
+
 ## How to run tests
 
-First, install tox:
+Tests upload files to Cloudinary, so you need Cloudinary account. Please use a separate account for tests, because
+some tests delete files. Put its credentials into `.env` file in the project root:
 
 ```
-$ pip install tox
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
 ```
 
-After that, edit `tox.ini` file and input your Cloudinary credentials in `setenv`.
-
-Then, just run:
+Then, install [uv](https://docs.astral.sh/uv/) and run:
 
 ```
-$ tox
+$ uvx --with tox-uv tox
 ```
 
-which will execute tests for Python 2.7, 3.4 - 3,5 and Django 1.8 - 1.11 (and additionally for Python 3.6 and Django 1.11).
-At the end you will see coverage report in your console. HTML version of this report will be available in `./htmlcov/index.html`
-file.
-
-If you only need to run tests for your environment, add `-e` argument to `tox` command in
-`{py34,py35}-dj{18,19,110,111}` format (plus `py36-dj111`), for example:
+which will execute tests for all supported Python and Django versions. To run tests only for a given environment,
+use `-e` argument, for example:
 
 ```
-$ tox -e py34-dj110
+$ uvx --with tox-uv tox -e py312-dj52
 ```
-
-which will run tests for Python 3.4 and Django 1.10.

@@ -1,0 +1,60 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "django-cloudinary-storage"
+version = "0.4.0"
+description = """Django package that provides Cloudinary storages for both media and static files \
+as well as management commands for removing unnecessary files."""
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Konrad Lisiczynski", email = "klisiczynski@gmail.com" }]
+keywords = ["django", "cloudinary", "storage"]
+requires-python = ">=3.10"
+dependencies = [
+    "Django>=4.2",
+    "cloudinary>=1.4.0",
+    "requests>=2.10.0",
+]
+classifiers = [
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Framework :: Django :: 4.2",
+    "Framework :: Django :: 5.2",
+    "Framework :: Django :: 6.0",
+    "Framework :: Django :: 6.1",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Internet :: WWW/HTTP",
+]
+
+[project.optional-dependencies]
+video = ["python-magic>=0.4.12"]
+
+[project.urls]
+Homepage = "https://github.com/klis87/django-cloudinary-storage"
+Changelog = "https://github.com/klis87/django-cloudinary-storage/blob/master/CHANGELOG.md"
+Issues = "https://github.com/klis87/django-cloudinary-storage/issues"
+
+[dependency-groups]
+dev = [
+    "Pillow>=10.0",
+    "python-magic>=0.4.12",
+    "coverage>=7.0",
+]
+
+[tool.hatch.build.targets.sdist]
+include = ["cloudinary_storage", "README.md", "CHANGELOG.md", "LICENSE"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["cloudinary_storage"]
