@@ -1,26 +1,10 @@
 from django.test import SimpleTestCase, override_settings
 
 from cloudinary_storage.storage import StaticHashedCloudinaryStorage
-from tests.tests.test_helpers import (execute_command, import_mock, TemporaryStaticRootTestsMixin, STATIC_STORAGES,
+from tests.tests.test_helpers import (execute_command, import_mock, TemporaryStaticRootTestsMixin,
                                       STATIC_HASHED_STORAGES, STYLE_HASH, IMAGE_HASH)
 
 mock = import_mock()
-
-
-@override_settings(STORAGES=STATIC_STORAGES)
-class IndexPageTestsWithUnhashedStaticStorageTests(SimpleTestCase):
-    @override_settings(DEBUG=True)
-    def test_urls_with_debug_true(self):
-        response = self.client.get('/')
-        self.assertContains(response, '"/static/tests/css/style.css"')
-
-    def test_urls_with_debug_false(self):
-        response = self.client.get('/')
-        self.assertContains(response, '/raw/upload/v1/static/tests/css/style.css')
-
-    def test_cloudinary_static_tag(self):
-        response = self.client.get('/')
-        self.assertContains(response, '/image/upload/h_50,w_50/v1/static/tests/images/dummy-static-image.jpg')
 
 
 @override_settings(STORAGES=STATIC_HASHED_STORAGES)

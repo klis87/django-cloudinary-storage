@@ -262,6 +262,10 @@ CLOUDINARY_STORAGE = {
 It is highly recommended to keep up-to-date version of this file in your version control system, because your website
 needs it to know the names of hashed files.
 
+Images and videos referenced in your CSS files, like `background-image: url('../images/bg.jpg')`, are replaced with
+absolute Cloudinary urls during `collectstatic`. It is necessary, because CSS files are kept in Cloudinary
+as raw resources, while images and videos are kept as image and video resources, so relative urls wouldn't work.
+
 In order to use static files from Cloudinary, make sure you write your templates in below style:
 
 ```django
@@ -386,6 +390,7 @@ Version 0.4 supports Django 4.2+ and Python 3.10+. If you use Cloudinary for sta
 - `STORAGES` setting must be used instead of `DEFAULT_FILE_STORAGE` and `STATICFILES_STORAGE`,
   the old ones are removed in Django 5.1
 - `STATIC_ROOT` setting is required, as static files are collected there before they are uploaded to Cloudinary
+- `StaticCloudinaryStorage` is removed, use `StaticHashedCloudinaryStorage`
 - the package doesn't overwrite `collectstatic` command anymore, so the order of `cloudinary_storage`
   and `django.contrib.staticfiles` in `INSTALLED_APPS` doesn't matter
 - `--upload-unhashed-files` argument of `collectstatic` and `--keep-unhashed-files` argument
@@ -418,3 +423,30 @@ use `-e` argument, for example:
 ```
 $ uvx --with tox-uv tox -e py312-dj52
 ```
+
+Tests using Cloudinary are tagged with `cloudinary`. Cloudinary limits the number of API calls per hour, so if you
+want to run tests often, you can skip them:
+
+```
+$ uvx --with tox-uv tox -- --exclude-tag cloudinary
+```
+
+There are also end-to-end tests, which run the test app on a real server and check it in a real browser
+with [Playwright](https://playwright.dev/python/), covering both media and static files:
+
+```
+$ uv run --group e2e playwright install chromium  # only once
+$ uv run --group e2e python tests/e2e/run_e2e.py
+```
+
+You can also play with the test app yourself, for example upload media files at `/uploads/` page:
+
+```
+$ mkdir -p /tmp/e2e/extra-static
+$ export E2E_DIR=/tmp/e2e DJANGO_SETTINGS_MODULE=tests.e2e_settings
+$ uv run --env-file .env python manage.py migrate
+$ uv run --env-file .env python manage.py collectstatic --noinput
+$ uv run --env-file .env python manage.py runserver
+```
+
+Files are uploaded to Cloudinary under `e2e-static` and `e2e-media` prefixes and tags.

@@ -7,7 +7,7 @@ import requests
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.core.files.base import ContentFile
 from django.core.files.images import ImageFile
-from django.test import TestCase, SimpleTestCase, override_settings
+from django.test import tag, TestCase, SimpleTestCase, override_settings
 from django.core.management import CommandError
 
 from cloudinary_storage.management.commands.deleteorphanedmedia import Command as DeleteOrphanedMediaCommand
@@ -17,7 +17,7 @@ from cloudinary_storage.storage import (MediaCloudinaryStorage, RawMediaCloudina
 from cloudinary_storage import app_settings
 from tests.models import TestModel, TestImageModel, TestModelWithoutFile
 from tests.tests.test_helpers import (get_random_name, set_media_tag, execute_command, import_mock,
-                                      TemporaryStaticRootTestsMixin, STATIC_STORAGES, STATIC_HASHED_STORAGES,
+                                      TemporaryStaticRootTestsMixin, LOCAL_STATIC_STORAGES, STATIC_HASHED_STORAGES,
                                       STYLE_HASH, IMAGE_HASH, STYLE_MD5, IMAGE_MD5)
 
 mock = import_mock()
@@ -65,6 +65,7 @@ class BaseOrphanedMediaCommandTestsMixin(object):
         set_media_tag(DEFAULT_MEDIA_TAG)
 
 
+@tag('cloudinary')
 class DeleteOrphanedMediaCommandHelpersTests(BaseOrphanedMediaCommandTestsMixin, TestCase):
     def test_get_resource_types(self):
         command = DeleteOrphanedMediaCommand()
@@ -102,6 +103,7 @@ class DeleteOrphanedMediaCommandHelpersTests(BaseOrphanedMediaCommandTestsMixin,
         app_settings.EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS = ()
 
 
+@tag('cloudinary')
 class DeleteOrphanedMediaCommandExecutionTests(BaseOrphanedMediaCommandTestsMixin, TestCase):
     def test_command_execution_correctly_removes_orphaned_files(self):
         output = execute_command('deleteorphanedmedia', '--noinput')
@@ -121,6 +123,7 @@ class DeleteOrphanedMediaCommandExecutionTests(BaseOrphanedMediaCommandTestsMixi
             self.assertIn('There is no file to delete.', output)
 
 
+@tag('cloudinary')
 class DeleteOrphanedMediaCommandPromptTests(TestCase):
     def test_command_execution_with_prompt_as_yes(self):
         with mock.patch.object(DeleteOrphanedMediaCommand,
@@ -149,21 +152,6 @@ UNHASHED_IMAGE_PUBLIC_ID = 'static/tests/images/dummy-static-image'  # removed j
 
 def get_uploaded_public_ids(upload_mock):
     return {call.kwargs['public_id'] for call in upload_mock.call_args_list}
-
-
-@override_settings(STORAGES=STATIC_STORAGES)
-@mock.patch('cloudinary_storage.storage.get_resources_md5_by_prefix', return_value={})
-@mock.patch('cloudinary_storage.storage.cloudinary.uploader.upload')
-class CollectStaticCommandTests(TemporaryStaticRootTestsMixin, SimpleTestCase):
-    def test_command_uploads_collected_files(self, upload_mock, resources_mock):
-        output = execute_command('collectstatic', '--noinput')
-        self.assertIn('2 static files copied', output)
-        self.assertEqual(get_uploaded_public_ids(upload_mock), {UNHASHED_STYLE_PUBLIC_ID, UNHASHED_IMAGE_PUBLIC_ID})
-
-    def test_command_doesnt_upload_anything_with_dry_run(self, upload_mock, resources_mock):
-        execute_command('collectstatic', '--noinput', '--dry-run')
-        self.assertFalse(resources_mock.called)
-        self.assertFalse(upload_mock.called)
 
 
 @override_settings(STORAGES=STATIC_HASHED_STORAGES)
@@ -211,6 +199,40 @@ class CollectStaticCommandWithHashedStorageTests(TemporaryStaticRootTestsMixin, 
         self.assertFalse(upload_mock.called)
 
 
+CSS_WITH_REFERENCES = """.relative { background: url('../tests/images/dummy-static-image.jpg'); }
+.absolute { background: url('/static/tests/images/dummy-static-image.jpg#fragment'); }
+@font-face { src: url('font.woff'); }
+.data { background: url('data:image/png;base64,AAAA'); }
+.external { background: url('https://example.com/image.jpg'); }
+"""
+
+
+@override_settings(STORAGES=STATIC_HASHED_STORAGES)
+@mock.patch('cloudinary_storage.storage.get_resources_md5_by_prefix', return_value={})
+@mock.patch('cloudinary_storage.storage.cloudinary.uploader.upload')
+class CollectStaticCommandWithCssReferencesTests(TemporaryStaticRootTestsMixin, SimpleTestCase):
+    def test_references_to_images_are_replaced_with_cloudinary_urls(self, upload_mock, resources_mock):
+        extra_dir = os.path.join(self.temp_dir, 'extra-static')
+        os.makedirs(os.path.join(extra_dir, 'refs'))
+        with open(os.path.join(extra_dir, 'refs', 'refs.css'), 'w') as f:
+            f.write(CSS_WITH_REFERENCES)
+        with open(os.path.join(extra_dir, 'refs', 'font.woff'), 'wb') as f:
+            f.write(b'font')
+        with self.settings(STATICFILES_DIRS=[extra_dir]):
+            execute_command('collectstatic', '--noinput', '--clear')
+            with staticfiles_storage.open(staticfiles_storage.stored_name('refs/refs.css')) as f:
+                content = f.read().decode()
+            image_url = staticfiles_storage.url('tests/images/dummy-static-image.jpg')
+            font_name = staticfiles_storage.stored_name('refs/font.woff').split('/')[-1]
+        self.assertIn('/image/upload/v1/static/tests/images/dummy-static-image.{}.jpg'.format(IMAGE_HASH), image_url)
+        self.assertIn('.relative {{ background: url("{}"); }}'.format(image_url), content)
+        self.assertIn('.absolute {{ background: url("{}#fragment"); }}'.format(image_url), content)
+        self.assertIn('@font-face {{ src: url("{}"); }}'.format(font_name), content)
+        self.assertIn(".data { background: url('data:image/png;base64,AAAA'); }", content)
+        self.assertIn(".external { background: url('https://example.com/image.jpg'); }", content)
+
+
+@tag('cloudinary')
 @override_settings(STORAGES=STATIC_HASHED_STORAGES, STATIC_URL='/static-{}/'.format(get_random_name()))
 class CollectStaticCommandWithHashedStorageIntegrationTests(TemporaryStaticRootTestsMixin, SimpleTestCase):
     """
@@ -248,7 +270,7 @@ class DeleteRedundantStaticCommandTests(TemporaryStaticRootTestsMixin, SimpleTes
         with self.assertRaises(CommandError):
             execute_command('deleteredundantstatic', '--noinput')
 
-    @override_settings(STORAGES=STATIC_STORAGES)
+    @override_settings(STORAGES=LOCAL_STATIC_STORAGES)
     def test_command_raises_error_without_hashed_storage(self):
         with self.assertRaises(CommandError):
             execute_command('deleteredundantstatic', '--noinput')
@@ -273,6 +295,7 @@ class DeleteRedundantStaticCommandTests(TemporaryStaticRootTestsMixin, SimpleTes
         command = DeleteRedundantStaticCommand()
         self.assertEqual(command.get_needful_files(), {HASHED_STYLE_PUBLIC_ID, HASHED_IMAGE_PUBLIC_ID})
 
+    @tag('cloudinary')
     def test_command_doesnt_remove_anything_without_uploaded_files(self):
         DeleteRedundantStaticCommand.TAG = get_random_name()
         output = execute_command('deleteredundantstatic', '--noinput')

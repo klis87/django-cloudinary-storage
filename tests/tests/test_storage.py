@@ -2,10 +2,10 @@ import errno
 import os.path
 
 from requests.exceptions import HTTPError
-from django.test import SimpleTestCase, override_settings
+from django.test import tag, SimpleTestCase, override_settings
 from django.core.files.base import ContentFile, File
 
-from cloudinary_storage.storage import (MediaCloudinaryStorage, ManifestCloudinaryStorage, StaticCloudinaryStorage,
+from cloudinary_storage.storage import (MediaCloudinaryStorage, ManifestCloudinaryStorage,
                                         StaticHashedCloudinaryStorage, RESOURCE_TYPES)
 from cloudinary_storage import app_settings
 from tests.tests.test_helpers import (get_random_name, import_mock, TemporaryStaticRootTestsMixin,
@@ -16,6 +16,7 @@ mock = import_mock()
 TAG = get_random_name()
 
 
+@tag('cloudinary')
 class CloudinaryMediaStorageTests(SimpleTestCase):
     @classmethod
     def setUpClass(cls):
@@ -150,24 +151,20 @@ class ManifestCloudinaryStorageTests(SimpleTestCase):
                     raise
 
 
-class StaticCloudinaryStorageTests(SimpleTestCase):
-    @classmethod
-    def setUpClass(cls):
-        super(StaticCloudinaryStorageTests, cls).setUpClass()
-        cls.storage = StaticCloudinaryStorage(tag=get_random_name())
+class StaticHashedCloudinaryStorageHelpersTests(TemporaryStaticRootTestsMixin, SimpleTestCase):
+    def setUp(self):
+        self.storage = StaticHashedCloudinaryStorage(tag=get_random_name())
+        self.storage.hashed_files = {'file.css': 'file.123.css', 'file.jpg': 'file.123.jpg'}
 
     @override_settings(DEBUG=True)
     def test_url_with_debug_true(self):
-        self.assertEqual(self.storage.url('name'), '/static/name')
-
-    def test_url_with_debug_false(self):
-        self.assertIn('cloudinary', self.storage.url('name'))
+        self.assertEqual(self.storage.url('file.css'), '/static/file.css')
 
     def test_url_of_raw_file_with_debug_false(self):
-        self.assertTrue(self.storage.url('file.css').endswith('/raw/upload/v1/static/file.css'))
+        self.assertTrue(self.storage.url('file.css').endswith('/raw/upload/v1/static/file.123.css'))
 
     def test_url_of_image_file_with_debug_false(self):
-        self.assertTrue(self.storage.url('file.jpg').endswith('/image/upload/v1/static/file.jpg'))
+        self.assertTrue(self.storage.url('file.jpg').endswith('/image/upload/v1/static/file.123.jpg'))
 
     def test_get_file_extension_returns_none_for_file_without_extension(self):
         extension = self.storage._get_file_extension('file-with-accidental-ending-jpg')
@@ -225,9 +222,9 @@ class StaticCloudinaryStorageTests(SimpleTestCase):
 
 @mock.patch('cloudinary_storage.storage.cloudinary.uploader.upload')
 @mock.patch('cloudinary_storage.storage.get_resources_md5_by_prefix', return_value={})
-class StaticCloudinaryStorageUploadTests(TemporaryStaticRootTestsMixin, SimpleTestCase):
+class StaticHashedCloudinaryStorageUploadTests(TemporaryStaticRootTestsMixin, SimpleTestCase):
     def setUp(self):
-        self.storage = StaticCloudinaryStorage(tag='static-tag')
+        self.storage = StaticHashedCloudinaryStorage(tag='static-tag')
         self.names = ['tests/css/style.css', 'tests/images/dummy-static-image.jpg']
         for name in self.names:
             with open(os.path.join('tests', 'static', name), 'rb') as f:

@@ -13,3 +13,5 @@ dist
 .python-version
 .env
 staticfiles
+uv.lock
+.venv

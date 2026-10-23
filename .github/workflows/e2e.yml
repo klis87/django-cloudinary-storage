@@ -1,0 +1,26 @@
+name: E2E
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: End-to-end tests with Cloudinary
+    runs-on: ubuntu-latest
+    concurrency:
+      group: cloudinary
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+      - name: Write Cloudinary credentials
+        run: printf 'CLOUDINARY_CLOUD_NAME=%s\nCLOUDINARY_API_KEY=%s\nCLOUDINARY_API_SECRET=%s\n' "$CLOUD_NAME" "$API_KEY" "$API_SECRET" > .env
+        env:
+          CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+          API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+      - run: uv run --group e2e playwright install --with-deps chromium
+      - run: uv run --group e2e python tests/e2e/run_e2e.py

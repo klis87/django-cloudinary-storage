@@ -52,6 +52,10 @@ dev = [
     "python-magic>=0.4.12",
     "coverage>=7.0",
 ]
+e2e = [
+    { include-group = "dev" },
+    "playwright>=1.40",
+]
 
 [tool.hatch.build.targets.sdist]
 include = ["cloudinary_storage", "README.md", "CHANGELOG.md", "LICENSE"]

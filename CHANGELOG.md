@@ -5,6 +5,8 @@
 ### Breaking changes
 
 - Dropped support for Python < 3.10 and Django < 4.2.
+- Removed `StaticCloudinaryStorage`, use `StaticHashedCloudinaryStorage`. Static files without hashes in their names
+  were cached by Cloudinary CDN and browsers, so their changes could be invisible to users for a long time.
 - Static storages require `STATIC_ROOT` setting. `collectstatic` gathers files there first and uploads them
   to Cloudinary once the final set of files is known.
 - Removed the custom `collectstatic` command, Django's one is used. The order of `cloudinary_storage`
@@ -24,6 +26,9 @@
 - Freshly uploaded static files returning 404. Uploaded files are now listed with Cloudinary Admin API
   instead of being requested from the CDN before upload, which made it cache 404 responses.
 - Intermediate files created by post-processing of CSS files are not uploaded anymore.
+- Images and videos referenced in CSS files, like `url('../images/bg.jpg')`, returning 404. CSS files are raw
+  resources in Cloudinary, so such references are replaced with absolute Cloudinary urls by
+  `StaticHashedCloudinaryStorage`.
 
 ### Changed
 
@@ -31,6 +36,7 @@
 - Static files are uploaded only when they are new or modified, md5 of their content is kept in Cloudinary context.
   The first `collectstatic` after the upgrade uploads all files again.
 - Packaging moved to `pyproject.toml`, tests are run with tox and uv.
+- Added end-to-end tests of the test app with a real browser and Cloudinary account.
 
 ## 0.3.0
 

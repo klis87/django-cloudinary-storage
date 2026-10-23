@@ -18,9 +18,9 @@ from cloudinary_storage.storage import MediaCloudinaryStorage
 STYLE_PATH = os.path.join('tests', 'static', 'tests', 'css', 'style.css')
 IMAGE_PATH = os.path.join('tests', 'static', 'tests', 'images', 'dummy-static-image.jpg')
 
-STATIC_STORAGES = {
+LOCAL_STATIC_STORAGES = {
     'default': {'BACKEND': 'cloudinary_storage.storage.MediaCloudinaryStorage'},
-    'staticfiles': {'BACKEND': 'cloudinary_storage.storage.StaticCloudinaryStorage'},
+    'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
 }
 
 STATIC_HASHED_STORAGES = {

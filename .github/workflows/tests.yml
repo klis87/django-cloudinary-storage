@@ -1,0 +1,44 @@
+name: Tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Tests ${{ matrix.env }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [py310-dj42, py312-dj42, py310-dj52, py314-dj52, py312-dj60, py314-dj60, py312-dj61, py314-dj61]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+      # Tests using Cloudinary are excluded, they are run once in integration job due to Cloudinary API rate limits
+      - run: touch .env
+      - run: uvx --with tox-uv tox -e ${{ matrix.env }} -- --exclude-tag cloudinary
+
+  integration:
+    name: Integration tests with Cloudinary
+    # Secrets are not available for pull requests from forks
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    concurrency:
+      group: cloudinary
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+      - name: Write Cloudinary credentials
+        run: printf 'CLOUDINARY_CLOUD_NAME=%s\nCLOUDINARY_API_KEY=%s\nCLOUDINARY_API_SECRET=%s\n' "$CLOUD_NAME" "$API_KEY" "$API_SECRET" > .env
+        env:
+          CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+          API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+      - run: uvx --with tox-uv tox -e py314-dj61

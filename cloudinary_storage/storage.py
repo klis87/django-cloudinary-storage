@@ -1,6 +1,8 @@
 import hashlib
 import logging
 import os
+import posixpath
+from urllib.parse import unquote, urldefrag
 
 import cloudinary
 import cloudinary.api
@@ -150,20 +152,43 @@ storages_per_type = {
 }
 
 
-class StaticCloudinaryStorage(StaticFilesStorage):
+class ManifestCloudinaryStorage(FileSystemStorage):
     """
-    Base storage for staticfiles kept in Cloudinary.
-    collectstatic gathers files in STATIC_ROOT as usual, then they are uploaded to Cloudinary
-    in post_process, once the final set of files is known.
-    Uploads only unhashed files, so it is highly unrecommended to use it directly,
-    because static files are cached both by Cloudinary CDN and browsers
-    and changing files could become problematic.
+    Storage for manifest file which will keep map of hashed paths.
+    Subclasses FileSystemStorage, so the manifest file is kept locally.
+    It is highly recommended to keep the manifest in your version control system,
+    then you are guaranteed the manifest will be used in all production environment,
+    including Heroku and AWS Elastic Beanstalk.
+    """
+    def __init__(self, location=None, base_url=None, *args, **kwargs):
+        location = app_settings.STATICFILES_MANIFEST_ROOT if location is None else location
+        super(ManifestCloudinaryStorage, self).__init__(location, base_url, *args, **kwargs)
+
+
+class _CloudinaryUrlStorage(StaticFilesStorage):
+    """
+    Returns Cloudinary urls instead of local ones.
+    Kept below HashedFilesMixin in MRO, so it receives already hashed names.
+    """
+    def url(self, name):
+        if settings.DEBUG:
+            return super().url(name)
+        return self._get_cloudinary_url(name)
+
+
+class StaticHashedCloudinaryStorage(ManifestFilesMixin, _CloudinaryUrlStorage):
+    """
+    Django ManifestStaticFilesStorage, which keeps static files in Cloudinary.
+    collectstatic gathers files in STATIC_ROOT as usual, then the final hashed files are uploaded to Cloudinary
+    at the end of post_process. Unhashed files are uploaded too when UPLOAD_UNHASHED_STATIC_FILES setting is True.
     """
     RESOURCE_TYPE = RESOURCE_TYPES['RAW']
     TAG = app_settings.STATIC_TAG
 
-    def __init__(self, *args, tag=None, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, *args, manifest_storage=None, tag=None, **kwargs):
+        if manifest_storage is None:
+            manifest_storage = ManifestCloudinaryStorage()
+        super().__init__(*args, manifest_storage=manifest_storage, **kwargs)
         if tag is not None:
             self.TAG = tag
 
@@ -198,8 +223,7 @@ class StaticCloudinaryStorage(StaticFilesStorage):
         would contain doubled extension - Cloudinary adds extension to url
         to allow file conversion to arbitrary file, like png to jpg.
         """
-        file_resource_type = self._get_resource_type(name)
-        if file_resource_type is None or file_resource_type == self.RESOURCE_TYPE:
+        if self._get_resource_type(name) == self.RESOURCE_TYPE:
             return name
         else:
             extension = self._get_file_extension(name)
@@ -221,19 +245,10 @@ class StaticCloudinaryStorage(StaticFilesStorage):
     def _get_public_id(self, name):
         return self._remove_extension_for_non_raw_file(self._prepend_prefix(name))
 
-    def url(self, name):
-        if settings.DEBUG:
-            return super().url(name)
+    def _get_cloudinary_url(self, name):
         name = self._prepend_prefix(name)
         cloudinary_resource = cloudinary.CloudinaryResource(name, default_resource_type=self._get_resource_type(name))
         return cloudinary_resource.url
-
-    def stored_name(self, name):
-        """
-        Implemented to standardize interface
-        for StaticCloudinaryStorage and StaticHashedCloudinaryStorage
-        """
-        return name
 
     def _get_md5(self, name):
         md5 = hashlib.md5()
@@ -241,6 +256,43 @@ class StaticCloudinaryStorage(StaticFilesStorage):
             for chunk in file.chunks():
                 md5.update(chunk)
         return md5.hexdigest()
+
+    def url_converter(self, name, hashed_files, template=None, *args, **kwargs):
+        """
+        Overwritten to replace references to files of different resource type, like images in url() of CSS files,
+        with absolute Cloudinary urls. Relative urls would point to raw resources, as CSS files are raw resources,
+        while images and videos are kept in Cloudinary as image and video resources.
+        """
+        converter = super().url_converter(name, hashed_files, template, *args, **kwargs)
+        template = self.default_template if template is None else template
+        source_resource_type = self._get_resource_type(name)
+
+        def cloudinary_converter(matchobj):
+            converted = converter(matchobj)
+            matches = matchobj.groupdict()
+            if converted == matches['matched']:  # url ignored by Django, like data-uri or absolute url
+                return converted
+            url_path, fragment = urldefrag(matches['url'])
+            if url_path.startswith(settings.STATIC_URL):
+                target_name = url_path[len(settings.STATIC_URL):]
+            else:
+                target_name = posixpath.join(posixpath.dirname(name.replace(os.sep, '/')), url_path)
+            if self._get_resource_type(target_name) == source_resource_type:
+                return converted
+            hashed_name = self._stored_name(unquote(target_name), hashed_files)
+            url = self._get_cloudinary_url(hashed_name)
+            if fragment:
+                url += ('?#' if '?#' in matches['url'] else '#') + fragment
+            matches['url'] = url
+            return template % matches
+
+        return cloudinary_converter
+
+    def get_files_to_upload(self):
+        files = set(self.hashed_files.values())
+        if app_settings.UPLOAD_UNHASHED_STATIC_FILES:
+            files.update(self.hashed_files.keys())
+        return files
 
     def upload_to_cloudinary(self, names):
         """
@@ -266,41 +318,6 @@ class StaticCloudinaryStorage(StaticFilesStorage):
             logger.info('Uploaded %s to Cloudinary.', name)
         logger.info('%s static files uploaded to Cloudinary, %s unmodified.',
                     uploaded_count, len(names) - uploaded_count)
-
-    def post_process(self, paths, dry_run=False, **options):
-        if not dry_run:
-            self.upload_to_cloudinary(paths)
-        yield from ()
-
-
-class ManifestCloudinaryStorage(FileSystemStorage):
-    """
-    Storage for manifest file which will keep map of hashed paths.
-    Subclasses FileSystemStorage, so the manifest file is kept locally.
-    It is highly recommended to keep the manifest in your version control system,
-    then you are guaranteed the manifest will be used in all production environment,
-    including Heroku and AWS Elastic Beanstalk.
-    """
-    def __init__(self, location=None, base_url=None, *args, **kwargs):
-        location = app_settings.STATICFILES_MANIFEST_ROOT if location is None else location
-        super(ManifestCloudinaryStorage, self).__init__(location, base_url, *args, **kwargs)
-
-
-class StaticHashedCloudinaryStorage(ManifestFilesMixin, StaticCloudinaryStorage):
-    """
-    Django ManifestStaticFilesStorage, which uploads the final hashed files to Cloudinary.
-    Unhashed files are uploaded too when UPLOAD_UNHASHED_STATIC_FILES setting is True.
-    """
-    def __init__(self, *args, manifest_storage=None, **kwargs):
-        if manifest_storage is None:
-            manifest_storage = ManifestCloudinaryStorage()
-        super().__init__(*args, manifest_storage=manifest_storage, **kwargs)
-
-    def get_files_to_upload(self):
-        files = set(self.hashed_files.values())
-        if app_settings.UPLOAD_UNHASHED_STATIC_FILES:
-            files.update(self.hashed_files.keys())
-        return files
 
     def post_process(self, paths, dry_run=False, **options):
         yield from super().post_process(paths, dry_run=dry_run, **options)
