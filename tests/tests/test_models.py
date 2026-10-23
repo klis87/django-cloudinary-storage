@@ -1,6 +1,6 @@
 import os
 
-from django.test import TestCase
+from django.test import tag, TestCase
 from django.core.files.base import ContentFile
 from django.core.files import File
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -12,6 +12,7 @@ from cloudinary_storage.storage import RawMediaCloudinaryStorage, VideoMediaClou
 from cloudinary_storage import app_settings
 
 
+@tag('cloudinary')
 class TestModelTests(TestCase):
     def test_file_exists_after_model_instance_with_file_is_saved(self):
         file_name = get_random_name()
@@ -27,6 +28,7 @@ class TestModelTests(TestCase):
 
 
 class TestVideoModelTests(TestCase):
+    @tag('cloudinary')
     def test_video_can_be_uploaded(self):
         file_name = get_random_name()
         video = File(open(os.path.join('tests', 'dummy-files', 'dummy-video.mp4'), 'rb'))

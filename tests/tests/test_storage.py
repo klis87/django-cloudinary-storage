@@ -2,21 +2,21 @@ import errno
 import os.path
 
 from requests.exceptions import HTTPError
-import cloudinary.uploader
-from django.test import SimpleTestCase, override_settings
-from django.core.files.base import ContentFile
-from django.conf import settings
+from django.test import tag, SimpleTestCase, override_settings
+from django.core.files.base import ContentFile, File
 
-from cloudinary_storage.storage import (MediaCloudinaryStorage, ManifestCloudinaryStorage, StaticCloudinaryStorage,
+from cloudinary_storage.storage import (MediaCloudinaryStorage, ManifestCloudinaryStorage,
                                         StaticHashedCloudinaryStorage, RESOURCE_TYPES)
 from cloudinary_storage import app_settings
-from tests.tests.test_helpers import get_random_name, import_mock
+from tests.tests.test_helpers import (get_random_name, import_mock, TemporaryStaticRootTestsMixin,
+                                      STYLE_MD5, IMAGE_MD5)
 
 mock = import_mock()
 
 TAG = get_random_name()
 
 
+@tag('cloudinary')
 class CloudinaryMediaStorageTests(SimpleTestCase):
     @classmethod
     def setUpClass(cls):
@@ -151,36 +151,20 @@ class ManifestCloudinaryStorageTests(SimpleTestCase):
                     raise
 
 
-class StaticCloudinaryStorageTests(SimpleTestCase):
-    @classmethod
-    def setUpClass(cls):
-        super(StaticCloudinaryStorageTests, cls).setUpClass()
-        cls.storage = StaticCloudinaryStorage(tag=get_random_name())
-        name = get_random_name()
-        cls.content = b'some content'
-        cls.file = ContentFile(cls.content)
-        cls.name = cls.storage.save(name, cls.file)
+class StaticHashedCloudinaryStorageHelpersTests(TemporaryStaticRootTestsMixin, SimpleTestCase):
+    def setUp(self):
+        self.storage = StaticHashedCloudinaryStorage(tag=get_random_name())
+        self.storage.hashed_files = {'file.css': 'file.123.css', 'file.jpg': 'file.123.jpg'}
 
     @override_settings(DEBUG=True)
     def test_url_with_debug_true(self):
-        self.assertIn(settings.STATIC_URL, self.storage.url('name'))
+        self.assertEqual(self.storage.url('file.css'), '/static/file.css')
 
-    def test_url_with_debug_false(self):
-        self.assertIn('cloudinary', self.storage.url('name'))
+    def test_url_of_raw_file_with_debug_false(self):
+        self.assertTrue(self.storage.url('file.css').endswith('/raw/upload/v1/static/file.123.css'))
 
-    def test_file_exists_with_the_same_name_as_before_save(self):
-        self.assertTrue(self.storage.exists(self.name))
-
-    @mock.patch.object(MediaCloudinaryStorage, '_save')
-    def test_file_wont_be_uploaded_with_the_same_content(self, save_mock):
-        self.storage.save(self.name, self.file)
-        self.assertFalse(save_mock.called)
-
-    @mock.patch.object(MediaCloudinaryStorage, '_save')
-    def test_file_will_be_uploaded_with_different_content(self, save_mock):
-        changed_file = ContentFile(b'changed content')
-        self.storage.save(self.name, changed_file)
-        save_mock.assert_called_once_with(self.name, changed_file)
+    def test_url_of_image_file_with_debug_false(self):
+        self.assertTrue(self.storage.url('file.jpg').endswith('/image/upload/v1/static/file.123.jpg'))
 
     def test_get_file_extension_returns_none_for_file_without_extension(self):
         extension = self.storage._get_file_extension('file-with-accidental-ending-jpg')
@@ -222,42 +206,91 @@ class StaticCloudinaryStorageTests(SimpleTestCase):
         name = self.storage._remove_extension_for_non_raw_file('file.jpg')
         self.assertEqual(name, 'file')
 
-    @mock.patch.object(cloudinary.uploader, 'upload')
-    def test_upload_uses_remove_extension_for_non_raw_file(self, cloudinary_upload_mock):
-        self.storage._upload('name.jpg', 'content')
-        resource_type = self.storage._get_resource_type('name.jpg')
-        cloudinary_upload_mock.assert_called_once_with('content', public_id='name', resource_type=resource_type,
-                                                       invalidate=True, tags=self.storage.TAG)
+    def test_get_public_id_of_raw_file(self):
+        self.assertEqual(self.storage._get_public_id('dir/file.css'), 'static/dir/file.css')
 
-    @classmethod
-    def tearDownClass(cls):
-        super(StaticCloudinaryStorageTests, cls).tearDownClass()
-        cls.storage.delete(cls.name)
+    def test_get_public_id_of_image_file_removes_extension(self):
+        self.assertEqual(self.storage._get_public_id('dir/file.jpg'), 'static/dir/file')
+
+    def test_get_public_id_of_windows_path(self):
+        self.assertEqual(self.storage._get_public_id('dir\\file.css'), 'static/dir/file.css')
+
+    @override_settings(STATIC_URL='/assets/v2/')
+    def test_get_public_id_with_nested_static_url(self):
+        self.assertEqual(self.storage._get_public_id('file.css'), 'assets/v2/file.css')
 
 
-class StaticHashedCloudinaryStorageTests(SimpleTestCase):
-    @mock.patch('cloudinary_storage.storage.finders.find')
-    def test_hashed_name_raises_error_when_file_not_found(self, find_mock):
-        storage = StaticHashedCloudinaryStorage()
-        not_existing_file = get_random_name()
-        find_mock.return_value = not_existing_file
-        with self.assertRaises(ValueError):
-            storage.hashed_name(not_existing_file)
+@mock.patch('cloudinary_storage.storage.cloudinary.uploader.upload')
+@mock.patch('cloudinary_storage.storage.get_resources_md5_by_prefix', return_value={})
+class StaticHashedCloudinaryStorageUploadTests(TemporaryStaticRootTestsMixin, SimpleTestCase):
+    def setUp(self):
+        self.storage = StaticHashedCloudinaryStorage(tag='static-tag')
+        self.names = ['tests/css/style.css', 'tests/images/dummy-static-image.jpg']
+        for name in self.names:
+            with open(os.path.join('tests', 'static', name), 'rb') as f:
+                self.storage.save(name, File(f))
 
-    def test_existing_manifest_is_deleted_before_new_is_saved(self):
-        storage = StaticHashedCloudinaryStorage()
-        with mock.patch.object(storage, 'manifest_storage') as manifest_storage_mock:
-            manifest_storage_mock.exists.return_value = True
-            storage.save_manifest()
-        manifest_storage_mock.delete.assert_called_once_with('staticfiles.json')
+    def tearDown(self):
+        for name in self.names:
+            self.storage.delete(name)
 
-    def test_add_unix_path_keys_to_paths(self):
-        storage = StaticHashedCloudinaryStorage()
-        paths = {
-            'dir/1': 1,
-            'dir\\2': 2
+    def test_files_are_uploaded_with_proper_options(self, resources_mock, upload_mock):
+        self.storage.upload_to_cloudinary(self.names)
+        upload_mock.assert_has_calls([
+            mock.call(self.storage.path('tests/css/style.css'), public_id='static/tests/css/style.css',
+                      resource_type=RESOURCE_TYPES['RAW'], tags='static-tag', context={'md5': STYLE_MD5},
+                      invalidate=False),
+            mock.call(self.storage.path('tests/images/dummy-static-image.jpg'),
+                      public_id='static/tests/images/dummy-static-image', resource_type=RESOURCE_TYPES['IMAGE'],
+                      tags='static-tag', context={'md5': IMAGE_MD5}, invalidate=False),
+        ], any_order=True)
+        self.assertEqual(upload_mock.call_count, 2)
+
+    def test_uploaded_files_are_listed_once_per_resource_type(self, resources_mock, upload_mock):
+        self.storage.upload_to_cloudinary(self.names)
+        resources_mock.assert_has_calls([
+            mock.call(RESOURCE_TYPES['RAW'], 'static/'),
+            mock.call(RESOURCE_TYPES['IMAGE'], 'static/'),
+        ], any_order=True)
+        self.assertEqual(resources_mock.call_count, 2)
+
+    def test_files_with_the_same_content_are_not_uploaded(self, resources_mock, upload_mock):
+        resources_mock.side_effect = lambda resource_type, prefix: {
+            'static/tests/css/style.css': STYLE_MD5,
+            'static/tests/images/dummy-static-image': IMAGE_MD5,
         }
-        expected_paths = paths.copy()
-        expected_paths['dir/2'] = 2
-        storage.add_unix_path_keys_to_paths(paths)
-        self.assertEqual(paths, expected_paths)
+        self.storage.upload_to_cloudinary(self.names)
+        self.assertFalse(upload_mock.called)
+
+    def test_files_with_different_content_are_uploaded_again_with_invalidation(self, resources_mock, upload_mock):
+        resources_mock.side_effect = lambda resource_type, prefix: {
+            'static/tests/css/style.css': 'different-md5',
+            'static/tests/images/dummy-static-image': None,
+        }
+        self.storage.upload_to_cloudinary(self.names)
+        self.assertEqual(upload_mock.call_count, 2)
+        for call in upload_mock.call_args_list:
+            self.assertTrue(call.kwargs['invalidate'])
+
+
+class StaticHashedCloudinaryStorageTests(TemporaryStaticRootTestsMixin, SimpleTestCase):
+    def test_manifest_is_kept_in_manifest_root(self):
+        storage = StaticHashedCloudinaryStorage()
+        self.assertIsInstance(storage.manifest_storage, ManifestCloudinaryStorage)
+        self.assertEqual(storage.manifest_storage.location, os.path.abspath(app_settings.STATICFILES_MANIFEST_ROOT))
+
+    def test_custom_manifest_storage_can_be_passed(self):
+        manifest_storage = ManifestCloudinaryStorage(location='custom-manifest-dir')
+        storage = StaticHashedCloudinaryStorage(manifest_storage=manifest_storage)
+        self.assertIs(storage.manifest_storage, manifest_storage)
+
+    def test_get_files_to_upload_returns_only_hashed_files(self):
+        storage = StaticHashedCloudinaryStorage()
+        storage.hashed_files = {'style.css': 'style.123.css'}
+        self.assertEqual(storage.get_files_to_upload(), {'style.123.css'})
+
+    def test_get_files_to_upload_with_unhashed_files(self):
+        storage = StaticHashedCloudinaryStorage()
+        storage.hashed_files = {'style.css': 'style.123.css'}
+        with mock.patch.object(app_settings, 'UPLOAD_UNHASHED_STATIC_FILES', True):
+            self.assertEqual(storage.get_files_to_upload(), {'style.css', 'style.123.css'})

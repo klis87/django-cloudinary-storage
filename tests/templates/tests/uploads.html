@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+{% load static %}
+{% load cloudinary %}
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Django Cloudinary storage uploads</title>
+  <link rel="stylesheet" href="{% static 'tests/css/style.css' %}">
+  {% if extra_stylesheet %}<link id="extra-stylesheet" rel="stylesheet" href="{% static extra_stylesheet %}">{% endif %}
+</head>
+<body>
+  <h1>Django Cloudinary storage uploads</h1>
+
+  <h2>Upload image and raw file</h2>
+  <form id="image-form" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ image_form.as_p }}
+    <button type="submit">Upload</button>
+  </form>
+
+  <h2>Upload video</h2>
+  <form id="video-form" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ video_form.as_p }}
+    <button type="submit">Upload</button>
+  </form>
+
+  <h2>Images and raw files</h2>
+  {% for model in image_models %}
+    <div class="image-model" data-name="{{ model.name }}">
+      <h3>{{ model.name }}</h3>
+      {% if model.file %}<a class="raw-file" href="{{ model.file.url }}">{{ model.file.name }}</a>{% endif %}
+      {% if model.image %}
+        <img class="original-image" src="{{ model.image.url }}" alt="{{ model.name }}">
+        {% cloudinary model.image.name width=100 height=100 crop="fill" class="transformed-image" %}
+      {% endif %}
+    </div>
+  {% endfor %}
+
+  <h2>Videos</h2>
+  {% for model in video_models %}
+    <div class="video-model" data-name="{{ model.name }}">
+      <h3>{{ model.name }}</h3>
+      <video class="video" src="{{ model.video.url }}" controls muted preload="metadata"></video>
+    </div>
+  {% endfor %}
+</body>
+</html>

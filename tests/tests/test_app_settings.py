@@ -1,5 +1,6 @@
 import os
 
+from django.conf import settings
 from django.test import SimpleTestCase, override_settings
 from django.core.exceptions import ImproperlyConfigured
 
@@ -71,6 +72,6 @@ class SetCredentialsWithEnvVariablesTests(SimpleTestCase):
 class OverrideSettingsTests(SimpleTestCase):
     def test_override_settings(self):
         old_value = app_settings.MEDIA_TAG
-        with override_settings(CLOUDINARY_STORAGE={'MEDIA_TAG': 'test'}):
+        with override_settings(CLOUDINARY_STORAGE=dict(settings.CLOUDINARY_STORAGE, MEDIA_TAG='test')):
             self.assertEqual(app_settings.MEDIA_TAG, 'test')
         self.assertEqual(app_settings.MEDIA_TAG, old_value)
