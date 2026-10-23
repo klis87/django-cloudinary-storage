@@ -1,16 +1,18 @@
 # Django Cloudinary Storage
 
-Django Cloudinary Storage is a Django package that facilitates integration with [Cloudinary](http://cloudinary.com/)
+Django Cloudinary Storage is a Django package that facilitates integration with [Cloudinary](https://cloudinary.com/)
 by implementing [Django Storage API](https://docs.djangoproject.com/en/stable/howto/custom-file-storage/).
 With several lines of configuration, you can start using Cloudinary for both media and static files.
 Also, it provides management commands for removing unnecessary files, so any cleanup will be a breeze.
 It uses [pycloudinary](https://github.com/cloudinary/pycloudinary) package under the hood.
 
+[![Tests](https://github.com/klis87/django-cloudinary-storage/actions/workflows/tests.yml/badge.svg?branch=master)](https://github.com/klis87/django-cloudinary-storage/actions/workflows/tests.yml)
 [![PyPI](https://img.shields.io/pypi/v/django-cloudinary-storage.svg)](https://pypi.org/project/django-cloudinary-storage/)
+[![Django versions](https://img.shields.io/pypi/frameworkversions/django/django-cloudinary-storage.svg)](https://pypi.org/project/django-cloudinary-storage/)
 [![Python versions](https://img.shields.io/pypi/pyversions/django-cloudinary-storage.svg)](https://pypi.org/project/django-cloudinary-storage/)
 [![License](https://img.shields.io/pypi/l/django-cloudinary-storage.svg)](https://github.com/klis87/django-cloudinary-storage/blob/master/LICENSE)
 
-## Table of content
+## Table of contents
 
 - [Requirements](#requirements)
 - [Installation](#installation)
@@ -51,7 +53,7 @@ Also, in case you use Django `ImageField`, make sure you have Pillow installed:
 $ pip install Pillow
 ```
 
-Once you have done that, add `cloudinary` and `cloudinary_storage` to you installed apps in your `settings.py`:
+Once you have done that, add `cloudinary` and `cloudinary_storage` to your installed apps in your `settings.py`:
 
 ```python
 INSTALLED_APPS = [
@@ -94,7 +96,7 @@ The package provides three media storages:
 - `cloudinary_storage.storage.RawMediaCloudinaryStorage` for raw files, like txt, pdf
 - `cloudinary_storage.storage.VideoMediaCloudinaryStorage` for videos
 
-Above distinction if necessary as Cloudinary API needs to know resource type in many of its methods.
+Above distinction is necessary as Cloudinary API needs to know resource type in many of its methods.
 
 Now, let's consider the most probable scenario that you will use Cloudinary for images uploaded by users of your
 website. Let's say you created a following Django model:
@@ -119,14 +121,14 @@ STORAGES = {
 }
 ```
 
-Please note that `STORAGES` replaces the whole default configuration, so you need to define both `default`
-and `staticfiles` storages. Old `DEFAULT_FILE_STORAGE` setting doesn't work since Django 5.1.
-
 and add `MEDIA_URL` to your `settings.py` as well:
 
 ```python
 MEDIA_URL = '/media/'  # or any prefix you choose
 ```
+
+Please note that `STORAGES` replaces the whole default configuration, so you need to define both `default`
+and `staticfiles` storages. Old `DEFAULT_FILE_STORAGE` setting doesn't work since Django 5.1.
 
 And that's it! All your models with `ImageField` will be connected to Cloudinary.
 
@@ -175,7 +177,7 @@ from cloudinary_storage.storage import RawMediaCloudinaryStorage
 
 class TestModelWithRawFileAndImage(models.Model):
     name = models.CharField(max_length=100)
-    raw_file = models.ImageField(upload_to='raw/', blank=True, storage=RawMediaCloudinaryStorage())
+    raw_file = models.FileField(upload_to='raw/', blank=True, storage=RawMediaCloudinaryStorage())
     image = models.ImageField(upload_to='images/', blank=True)  # no need to set storage, field will use the default one
 ```
 
@@ -197,8 +199,8 @@ from cloudinary_storage.validators import validate_video
 
 class TestModelWithVideoAndImage(models.Model):
     name = models.CharField(max_length=100)
-    video = models.ImageField(upload_to='videos/', blank=True, storage=VideoMediaCloudinaryStorage(),
-                              validators=[validate_video])
+    video = models.FileField(upload_to='videos/', blank=True, storage=VideoMediaCloudinaryStorage(),
+                             validators=[validate_video])
     image = models.ImageField(upload_to='images/', blank=True)  # no need to set storage, field will use the default one
 ```
 
@@ -209,7 +211,7 @@ In order to move your static files to Cloudinary, update your `settings.py`:
 ```python
 STORAGES = {
     'default': {
-        # your media files storage...
+        'BACKEND': 'cloudinary_storage.storage.MediaCloudinaryStorage',  # or any other media storage
     },
     'staticfiles': {
         'BACKEND': 'cloudinary_storage.storage.StaticHashedCloudinaryStorage',
@@ -218,6 +220,11 @@ STORAGES = {
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+CLOUDINARY_STORAGE = {
+    # other settings, like credentials
+    'STATICFILES_MANIFEST_ROOT': BASE_DIR / 'manifest',
+}
 ```
 
 After that, run Django `collectstatic` command:
@@ -248,19 +255,10 @@ web browsers. Without it files' modification would become very problematic, beca
 their private older copies. Hashing prevents this issue as any file change will change its url as well, which would
 force a browser to download a new version of a file.
 
-Also, be aware that `collectstatic` will create a JSON file, which shows mapping of unhashed file names to their hashed
-versions. This file will be available at `./manifest/staticfiles.json` by default - you could change that
-in your `settings.py`, for example:
-
-```python
-CLOUDINARY_STORAGE = {
-    # other settings, like credentials
-    'STATICFILES_MANIFEST_ROOT': BASE_DIR / 'my-manifest-directory',
-}
-```
-
-It is highly recommended to keep up-to-date version of this file in your version control system, because your website
-needs it to know the names of hashed files.
+Also, be aware that `collectstatic` will create `staticfiles.json` file in `STATICFILES_MANIFEST_ROOT` directory,
+which shows mapping of unhashed file names to their hashed versions. Your website needs it to know the names
+of hashed files, so it must be available wherever your website is running. It is highly recommended to keep
+up-to-date version of this file in your version control system.
 
 Images and videos referenced in your CSS files, like `background-image: url('../images/bg.jpg')`, are replaced with
 absolute Cloudinary urls during `collectstatic`. It is necessary, because CSS files are kept in Cloudinary
@@ -288,6 +286,9 @@ could be applied for those files. Also, please note that `cloudinary_static` is 
 tag from [pycloudinary](https://github.com/cloudinary/pycloudinary) library, so please go to its documentation
 to see what transformations are possible.
 
+`collectstatic` uses Cloudinary Admin API to check which files are already uploaded. It needs only a few API calls,
+but please note that Cloudinary limits the number of Admin API calls per hour.
+
 Please note that you must set `DEBUG` to `False` to fetch static files from Cloudinary. With `DEBUG` equal to `True`,
 Django `staticfiles` app will use your local files for easier and faster development (unless you use
 `cloudinary_static` template tag).
@@ -300,6 +301,7 @@ The package provides two management commands:
 - `deleteredundantstatic`
 
 Static files are uploaded by Django `collectstatic` command, see [Usage with static files](#usage-with-static-files).
+Both commands use Cloudinary Admin API, which limits the number of API calls per hour.
 
 ### deleteorphanedmedia
 
@@ -351,29 +353,29 @@ CLOUDINARY_STORAGE = {
     'UPLOAD_UNHASHED_STATIC_FILES': False,
     'STATIC_IMAGES_EXTENSIONS': ['jpg', 'jpe', 'jpeg', 'jpc', 'jp2', 'j2k', 'wdp', 'jxr',
                                  'hdp', 'png', 'gif', 'webp', 'bmp', 'tif', 'tiff', 'ico'],
-    'STATIC_VIDEOS_EXTENSIONS': ['mp4', 'webm', 'flv', 'mov', 'ogv' ,'3gp' ,'3g2' ,'wmv' ,
-                                 'mpeg' ,'flv' ,'mkv' ,'avi'],
+    'STATIC_VIDEOS_EXTENSIONS': ['mp4', 'webm', 'flv', 'mov', 'ogv', '3gp', '3g2', 'wmv',
+                                 'mpeg', 'flv', 'mkv', 'avi'],
     'MAGIC_FILE_PATH': 'magic',
     'PREFIX': settings.MEDIA_URL
 }
 ```
 
-`CLOUD_NAME`, `API_KEY` and `API_SECRET` are mandatory and you need to define them in `CLOUDINARY_STORAGE` dictionary
-in `settings.py`, the rest could be overwritten if required, as described below:
+`CLOUD_NAME`, `API_KEY` and `API_SECRET` are mandatory, unless you provide them as environment variables, as described
+in [Installation](#installation). The rest could be overwritten if required, as described below:
 
-- `SECURE` - whether your Cloudinary files should be server over HTTP or HTTPS, HTTPS is the default, set it to False
+- `SECURE` - whether your Cloudinary files should be served over HTTP or HTTPS, HTTPS is the default, set it to False
   to switch to HTTP
 - `MEDIA_TAG` - name assigned to your all media files, it has to be different than `STATIC_TAG`, usually you don't
   need to worry about this setting, it is useful when you have several websites which use the same Cloudinary account, when
-  you should set it unique to distinguish it from other websites,
+  you should set it unique to distinguish it from other websites
 - `INVALID_VIDEO_ERROR_MESSAGE` - error message which will be displayed in user's form when one tries to upload non-video
   file in video field
 - `EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS` - looked by `deleteorphanedmedia` command, you can provide here tuple of paths
   which will never be deleted
 - `STATIC_TAG` - name assigned to your all static files, it has to be different than `MEDIA_TAG`, please see `MEDIA_TAG`
   setting to see when it is useful
-- `STATICFILES_MANIFEST_ROOT` - path where `staticfiles.json` will be saved after `collectstatic` command, `./manifest`
-  is the default location
+- `STATICFILES_MANIFEST_ROOT` - path where `staticfiles.json` will be saved after `collectstatic` command, by default
+  it is `manifest` directory next to the installed package, so please set it to a directory in your project
 - `UPLOAD_UNHASHED_STATIC_FILES` - whether `collectstatic` should upload files without hash in their names
   along with hashed ones, `False` is the default
 - `STATIC_IMAGES_EXTENSIONS` - list of file extensions with which static files will be treated as Cloudinary images
