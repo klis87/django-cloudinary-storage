@@ -257,8 +257,10 @@ force a browser to download a new version of a file.
 
 Also, be aware that `collectstatic` will create `staticfiles.json` file in `STATICFILES_MANIFEST_ROOT` directory,
 which shows mapping of unhashed file names to their hashed versions. Your website needs it to know the names
-of hashed files, so it must be available wherever your website is running. It is highly recommended to keep
-up-to-date version of this file in your version control system.
+of hashed files, so it must be available wherever your website is running. If you run `collectstatic` during
+deployment, on the server which runs your website, the file is already there and you don't need to do anything.
+If you run `collectstatic` only locally, commit `staticfiles.json` to your version control system, so it gets
+deployed together with your code.
 
 Images and videos referenced in your CSS files, like `background-image: url('../images/bg.jpg')`, are replaced with
 absolute Cloudinary urls during `collectstatic`. It is necessary, because CSS files are kept in Cloudinary
