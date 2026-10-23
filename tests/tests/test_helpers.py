@@ -1,15 +1,32 @@
-import errno
+import hashlib
 import os
+import shutil
+import tempfile
 from io import StringIO
+from unittest import mock
 from uuid import uuid4
 
+from django.contrib.staticfiles.storage import HashedFilesMixin
 from django.core.files import File
 from django.core.management import call_command
-from django.utils import version
+from django.test import override_settings
 
 from cloudinary_storage import app_settings
 from cloudinary_storage.management.commands.deleteorphanedmedia import Command as DeleteOrphanedMediaCommand
-from cloudinary_storage.storage import MediaCloudinaryStorage, StaticHashedCloudinaryStorage, HashedFilesMixin
+from cloudinary_storage.storage import MediaCloudinaryStorage
+
+STYLE_PATH = os.path.join('tests', 'static', 'tests', 'css', 'style.css')
+IMAGE_PATH = os.path.join('tests', 'static', 'tests', 'images', 'dummy-static-image.jpg')
+
+STATIC_STORAGES = {
+    'default': {'BACKEND': 'cloudinary_storage.storage.MediaCloudinaryStorage'},
+    'staticfiles': {'BACKEND': 'cloudinary_storage.storage.StaticCloudinaryStorage'},
+}
+
+STATIC_HASHED_STORAGES = {
+    'default': {'BACKEND': 'cloudinary_storage.storage.MediaCloudinaryStorage'},
+    'staticfiles': {'BACKEND': 'cloudinary_storage.storage.StaticHashedCloudinaryStorage'},
+}
 
 
 def get_random_name():
@@ -28,61 +45,43 @@ def execute_command(*args):
     return out.getvalue()
 
 
-class StaticHashedStorageTestsMixin(object):
+def get_file_hash(path, name):
+    with open(path, 'rb') as f:
+        return HashedFilesMixin().file_hash(name, File(f))
+
+
+def get_file_md5(path):
+    with open(path, 'rb') as f:
+        return hashlib.md5(f.read()).hexdigest()
+
+
+STYLE_HASH = get_file_hash(STYLE_PATH, 'tests/css/style.css')
+IMAGE_HASH = get_file_hash(IMAGE_PATH, 'tests/images/dummy-static-image.jpg')
+STYLE_MD5 = get_file_md5(STYLE_PATH)
+IMAGE_MD5 = get_file_md5(IMAGE_PATH)
+
+
+class TemporaryStaticRootTestsMixin(object):
+    """
+    Keeps STATIC_ROOT and manifest in temporary directories, so tests running collectstatic are isolated.
+    """
     @classmethod
     def setUpClass(cls):
-        StaticHashedCloudinaryStorage.manifest_name = get_random_name()
-        hash_mixin = HashedFilesMixin()
-        content = File(open(os.path.join('tests', 'static', 'tests', 'css', 'style.css'), 'rb'))
-        cls.style_hash = hash_mixin.file_hash('tests/css/style.css', content)
-        content.close()
-        content = File(open(os.path.join('tests', 'static', 'tests', 'images', 'dummy-static-image.jpg'), 'rb'))
-        cls.image_hash = hash_mixin.file_hash('tests/images/dummy-static-image.jpg', content)
-        content.close()
-        name = StaticHashedCloudinaryStorage.manifest_name
-        cls.manifest_path = os.path.join(app_settings.STATICFILES_MANIFEST_ROOT, name)
-        super(StaticHashedStorageTestsMixin, cls).setUpClass()
+        cls.temp_dir = tempfile.mkdtemp()
+        cls.manifest_root = os.path.join(cls.temp_dir, 'manifest')
+        cls.manifest_root_patcher = mock.patch.object(app_settings, 'STATICFILES_MANIFEST_ROOT', cls.manifest_root)
+        cls.manifest_root_patcher.start()
+        cls.static_root_override = override_settings(STATIC_ROOT=os.path.join(cls.temp_dir, 'staticfiles'))
+        cls.static_root_override.enable()
+        super(TemporaryStaticRootTestsMixin, cls).setUpClass()
 
     @classmethod
     def tearDownClass(cls):
-        try:
-            os.remove(cls.manifest_path)
-        except (IOError, OSError) as e:
-            if e.errno != errno.ENOENT:
-                raise
-        super(StaticHashedStorageTestsMixin, cls).tearDownClass()
-        StaticHashedCloudinaryStorage.manifest_name = 'staticfiles.json'
+        super(TemporaryStaticRootTestsMixin, cls).tearDownClass()
+        cls.static_root_override.disable()
+        cls.manifest_root_patcher.stop()
+        shutil.rmtree(cls.temp_dir)
 
 
 def import_mock():
-    try:
-        from unittest import mock
-    except ImportError:
-        import mock
-    finally:
-        return mock
-
-
-def get_save_calls_counter_in_postprocess_of_adjustable_file():
-    """
-    Since Django 1.11, postprocess algorithm has been changed for css files
-    is such a way that they save is called 4 times total.
-    It must be taken into consideration in unittests.
-    Hopefully this will be removed at some point once Django introduces optimization
-    of postprocess handler.
-    """
-    if version.get_complete_version() >= (3, 0):
-        return 2
-    if version.get_complete_version() >= (1, 11):
-        return 4
-    return 1
-
-
-def get_postprocess_counter_of_adjustable_file():
-    """
-    Since Django 1.11, postprocess algorithm has been changed for css files
-    is such a way that they are postprocessed twice.
-    """
-    if version.get_complete_version() >= (1, 11):
-        return 2
-    return 1
+    return mock

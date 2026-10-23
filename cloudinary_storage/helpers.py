@@ -38,3 +38,29 @@ def get_resources(resource_type, tag):
         if next_cursor is None:
             break
     return resources
+
+
+def get_resources_md5_by_prefix(resource_type, prefix):
+    """
+    Returns dict of public ids of uploaded resources with their md5 kept in the context, None when missing.
+    """
+    resources = {}
+    next_cursor = None
+    while True:
+        options = {
+            'type': 'upload',
+            'prefix': prefix,
+            'resource_type': resource_type,
+            'max_results': 500,
+            'context': True
+        }
+        if next_cursor is not None:
+            options['next_cursor'] = next_cursor
+        response = cloudinary.api.resources(**options)
+        for resource in response['resources']:
+            context = resource.get('context', {}).get('custom', {})
+            resources[resource['public_id']] = context.get('md5')
+        next_cursor = response.get('next_cursor')
+        if next_cursor is None:
+            break
+    return resources

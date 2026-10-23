@@ -47,6 +47,7 @@ EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS = user_settings.get('EXCLUDE_DELETE_ORPHANED
 
 STATIC_TAG = user_settings.get('STATIC_TAG', 'static')
 STATICFILES_MANIFEST_ROOT = user_settings.get('STATICFILES_MANIFEST_ROOT', os.path.join(BASE_DIR, 'manifest'))
+UPLOAD_UNHASHED_STATIC_FILES = user_settings.get('UPLOAD_UNHASHED_STATIC_FILES', False)
 
 STATIC_IMAGES_EXTENSIONS = user_settings.get('STATIC_IMAGES_EXTENSIONS',
                                              [

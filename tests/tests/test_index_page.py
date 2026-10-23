@@ -1,59 +1,54 @@
 from django.test import SimpleTestCase, override_settings
 
 from cloudinary_storage.storage import StaticHashedCloudinaryStorage
-from tests.tests.test_helpers import execute_command, StaticHashedStorageTestsMixin, import_mock
+from tests.tests.test_helpers import (execute_command, import_mock, TemporaryStaticRootTestsMixin, STATIC_STORAGES,
+                                      STATIC_HASHED_STORAGES, STYLE_HASH, IMAGE_HASH)
 
 mock = import_mock()
 
 
-@override_settings(STATICFILES_STORAGE='cloudinary_storage.storage.StaticCloudinaryStorage')
+@override_settings(STORAGES=STATIC_STORAGES)
 class IndexPageTestsWithUnhashedStaticStorageTests(SimpleTestCase):
     @override_settings(DEBUG=True)
     def test_urls_with_debug_true(self):
         response = self.client.get('/')
-        self.assertContains(response, '/static/tests/css/style.css')
+        self.assertContains(response, '"/static/tests/css/style.css"')
 
     def test_urls_with_debug_false(self):
         response = self.client.get('/')
         self.assertContains(response, '/raw/upload/v1/static/tests/css/style.css')
 
-
-@override_settings(STATICFILES_STORAGE='cloudinary_storage.storage.StaticHashedCloudinaryStorage')
-class IndexPageTestsWithStaticHashedStorageTests(StaticHashedStorageTestsMixin, SimpleTestCase):
-    @override_settings(DEBUG=True)
-    def test_urls_with_debug_true(self):
+    def test_cloudinary_static_tag(self):
         response = self.client.get('/')
-        self.assertContains(response, '/static/tests/css/style.css')
-
-    def test_urls_with_debug_false(self):
-        response = self.client.get('/')
-        self.assertContains(response, '/raw/upload/v1/static/tests/css/style.{}.css'.format(self.style_hash))
+        self.assertContains(response, '/image/upload/h_50,w_50/v1/static/tests/images/dummy-static-image.jpg')
 
 
-@override_settings(STATICFILES_STORAGE='cloudinary_storage.storage.StaticHashedCloudinaryStorage')
-class IndexPageTestsWithStaticHashedStorageWithManifestTests(StaticHashedStorageTestsMixin, SimpleTestCase):
+@override_settings(STORAGES=STATIC_HASHED_STORAGES)
+class IndexPageTestsWithStaticHashedStorageTests(TemporaryStaticRootTestsMixin, SimpleTestCase):
     @classmethod
     def setUpClass(cls):
-        super(IndexPageTestsWithStaticHashedStorageWithManifestTests, cls).setUpClass()
-        with mock.patch.object(StaticHashedCloudinaryStorage, '_upload'):
-            execute_command('collectstatic', '--noinput')
-            with open(cls.manifest_path) as f:
-                cls.manifest = f.read()
+        super(IndexPageTestsWithStaticHashedStorageTests, cls).setUpClass()
+        with mock.patch('cloudinary_storage.storage.get_resources_md5_by_prefix', return_value={}):
+            with mock.patch('cloudinary_storage.storage.cloudinary.uploader.upload'):
+                execute_command('collectstatic', '--noinput')
 
     @override_settings(DEBUG=True)
     def test_urls_with_debug_true(self):
         response = self.client.get('/')
-        self.assertContains(response, '/static/tests/css/style.css')
+        self.assertContains(response, '"/static/tests/css/style.css"')
 
     def test_urls_with_debug_false(self):
         response = self.client.get('/')
-        self.assertContains(response, '/raw/upload/v1/static/tests/css/style.{}.css'.format(self.style_hash))
+        self.assertContains(response, '/raw/upload/v1/static/tests/css/style.{}.css'.format(STYLE_HASH))
+        self.assertContains(response, '/image/upload/v1/static/tests/images/dummy-static-image.{}.jpg'.format(
+            IMAGE_HASH))
+
+    def test_cloudinary_static_tag(self):
+        response = self.client.get('/')
+        self.assertContains(response, '/image/upload/h_50,w_50/v1/static/tests/images/dummy-static-image.{}.jpg'.format(
+            IMAGE_HASH))
 
     @mock.patch.object(StaticHashedCloudinaryStorage, 'hashed_name')
     def test_manifest_is_used_in_production(self, hashed_name_mock):
         self.client.get('/')
         self.assertFalse(hashed_name_mock.called)
-
-    def test_manifest_has_correct_content(self):
-        self.assertIn('tests/css/style.css', self.manifest)
-        self.assertIn('tests/css/style.{}.css'.format(self.style_hash), self.manifest)

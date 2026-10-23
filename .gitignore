@@ -11,3 +11,5 @@ htmlcov
 build
 dist
 .python-version
+.env
+staticfiles

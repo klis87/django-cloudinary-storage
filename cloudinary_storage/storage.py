@@ -1,22 +1,22 @@
-import errno
-import json
+import hashlib
+import logging
 import os
-from urllib.parse import unquote, urlsplit, urlunsplit
 
 import cloudinary
 import cloudinary.api
 import cloudinary.uploader
 import requests
 from django.conf import settings
-from django.contrib.staticfiles import finders
-from django.contrib.staticfiles.storage import HashedFilesMixin, ManifestFilesMixin
-from django.core.files.base import ContentFile, File
+from django.contrib.staticfiles.storage import ManifestFilesMixin, StaticFilesStorage
+from django.core.files.base import ContentFile
 from django.core.files.storage import Storage, FileSystemStorage
 from django.core.files.uploadedfile import UploadedFile
 from django.utils.deconstruct import deconstructible
 
 from . import app_settings
-from .helpers import get_resources_by_path
+from .helpers import get_resources_by_path, get_resources_md5_by_prefix
+
+logger = logging.getLogger(__name__)
 
 RESOURCE_TYPES = {
     'IMAGE': 'image',
@@ -150,15 +150,22 @@ storages_per_type = {
 }
 
 
-class StaticCloudinaryStorage(MediaCloudinaryStorage):
+class StaticCloudinaryStorage(StaticFilesStorage):
     """
     Base storage for staticfiles kept in Cloudinary.
+    collectstatic gathers files in STATIC_ROOT as usual, then they are uploaded to Cloudinary
+    in post_process, once the final set of files is known.
     Uploads only unhashed files, so it is highly unrecommended to use it directly,
     because static files are cached both by Cloudinary CDN and browsers
     and changing files could become problematic.
     """
     RESOURCE_TYPE = RESOURCE_TYPES['RAW']
     TAG = app_settings.STATIC_TAG
+
+    def __init__(self, *args, tag=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if tag is not None:
+            self.TAG = tag
 
     def _get_resource_type(self, name):
         """
@@ -184,17 +191,6 @@ class StaticCloudinaryStorage(MediaCloudinaryStorage):
         else:
             return substrings[-1].lower()
 
-    def url(self, name):
-        if settings.DEBUG:
-            return settings.STATIC_URL + name
-        return super(StaticCloudinaryStorage, self).url(name)
-
-    def _upload(self, name, content):
-        resource_type = self._get_resource_type(name)
-        name = self._remove_extension_for_non_raw_file(name)
-        return cloudinary.uploader.upload(content, public_id=name, resource_type=resource_type,
-                                          invalidate=True, tags=self.TAG)
-
     def _remove_extension_for_non_raw_file(self, name):
         """
         Implemented as image and video files' Cloudinary public id
@@ -209,51 +205,72 @@ class StaticCloudinaryStorage(MediaCloudinaryStorage):
             extension = self._get_file_extension(name)
             return name[:-len(extension) - 1]
 
-    # we only need 2 methods of HashedFilesMixin, so we just copy them as function objects to avoid MRO complexities
-    file_hash = HashedFilesMixin.file_hash
-    clean_name = HashedFilesMixin.clean_name
-
-    def _exists_with_etag(self, name, content):
-        """
-        Checks whether a file with a name and a content is already uploaded to Cloudinary.
-        Uses ETAG header and MD5 hash for the content comparison.
-        """
-        url = self._get_url(name)
-        response = requests.head(url)
-        if response.status_code == 404:
-            return False
-        etag = response.headers['ETAG'].split('"')[1]
-        hash = self.file_hash(name, content)
-        return etag.startswith(hash)
-
-    def _save(self, name, content):
-        """
-        Saves only when a file with a name and a content is not already uploaded to Cloudinary.
-        """
-        name = self.clean_name(name)  # to change to UNIX style path on windows if necessary
-        if not self._exists_with_etag(name, content):
-            content.seek(0)
-            super(StaticCloudinaryStorage, self)._save(name, content)
-        return self._prepend_prefix(name)
-
     def _get_prefix(self):
-        return settings.STATIC_URL
+        prefix = settings.STATIC_URL.lstrip('/')
+        if prefix != '' and not prefix.endswith('/'):
+            prefix += '/'
+        return prefix
 
-    def listdir(self, path):
-        """
-        Not implemented as static assets can be of different resource types
-        in contrast to media storages, which are specialized per given resource type.
-        That's why we cannot use parent's class listdir.
-        This method could be implemented in the future if there is a demand for it.
-        """
-        raise NotImplementedError()
+    def _prepend_prefix(self, name):
+        name = name.replace('\\', '/')
+        prefix = self._get_prefix()
+        if not name.startswith(prefix):
+            name = prefix + name
+        return name
+
+    def _get_public_id(self, name):
+        return self._remove_extension_for_non_raw_file(self._prepend_prefix(name))
+
+    def url(self, name):
+        if settings.DEBUG:
+            return super().url(name)
+        name = self._prepend_prefix(name)
+        cloudinary_resource = cloudinary.CloudinaryResource(name, default_resource_type=self._get_resource_type(name))
+        return cloudinary_resource.url
 
     def stored_name(self, name):
         """
         Implemented to standardize interface
         for StaticCloudinaryStorage and StaticHashedCloudinaryStorage
         """
-        return self._prepend_prefix(name)
+        return name
+
+    def _get_md5(self, name):
+        md5 = hashlib.md5()
+        with self.open(name) as file:
+            for chunk in file.chunks():
+                md5.update(chunk)
+        return md5.hexdigest()
+
+    def upload_to_cloudinary(self, names):
+        """
+        Uploads files from STATIC_ROOT to Cloudinary, skipping the ones already uploaded with the same content.
+        Uploaded files are found by listing them with Admin API, not by requesting their urls,
+        because Cloudinary CDN would cache 404 responses for files which are uploaded afterwards.
+        """
+        names = sorted(set(names))
+        resource_types = {self._get_resource_type(name) for name in names}
+        uploaded = {resource_type: get_resources_md5_by_prefix(resource_type, self._get_prefix())
+                    for resource_type in resource_types}
+        uploaded_count = 0
+        for name in names:
+            resource_type = self._get_resource_type(name)
+            public_id = self._get_public_id(name)
+            md5 = self._get_md5(name)
+            if uploaded[resource_type].get(public_id) == md5:
+                continue
+            cloudinary.uploader.upload(self.path(name), public_id=public_id, resource_type=resource_type,
+                                       tags=self.TAG, context={'md5': md5},
+                                       invalidate=public_id in uploaded[resource_type])
+            uploaded_count += 1
+            logger.info('Uploaded %s to Cloudinary.', name)
+        logger.info('%s static files uploaded to Cloudinary, %s unmodified.',
+                    uploaded_count, len(names) - uploaded_count)
+
+    def post_process(self, paths, dry_run=False, **options):
+        if not dry_run:
+            self.upload_to_cloudinary(paths)
+        yield from ()
 
 
 class ManifestCloudinaryStorage(FileSystemStorage):
@@ -269,77 +286,23 @@ class ManifestCloudinaryStorage(FileSystemStorage):
         super(ManifestCloudinaryStorage, self).__init__(location, base_url, *args, **kwargs)
 
 
-class HashCloudinaryMixin(object):
-    def __init__(self, *args, **kwargs):
-        self.manifest_storage = ManifestCloudinaryStorage()
-        super(HashCloudinaryMixin, self).__init__(*args, **kwargs)
+class StaticHashedCloudinaryStorage(ManifestFilesMixin, StaticCloudinaryStorage):
+    """
+    Django ManifestStaticFilesStorage, which uploads the final hashed files to Cloudinary.
+    Unhashed files are uploaded too when UPLOAD_UNHASHED_STATIC_FILES setting is True.
+    """
+    def __init__(self, *args, manifest_storage=None, **kwargs):
+        if manifest_storage is None:
+            manifest_storage = ManifestCloudinaryStorage()
+        super().__init__(*args, manifest_storage=manifest_storage, **kwargs)
 
-    def hashed_name(self, name, content=None, filename=None):
-        parsed_name = urlsplit(unquote(name))
-        clean_name = parsed_name.path.strip()
-        opened = False
-        if content is None:
-            absolute_path = finders.find(clean_name)
-            try:
-                content = open(absolute_path, 'rb')
-            except (IOError, OSError) as e:
-                if e.errno == errno.ENOENT:
-                    raise ValueError("The file '%s' could not be found with %r." % (clean_name, self))
-                else:
-                    raise
-            content = File(content)
-            opened = True
-        try:
-            file_hash = self.file_hash(clean_name, content)
-        finally:
-            if opened:
-                content.close()
-        path, filename = os.path.split(clean_name)
-        root, ext = os.path.splitext(filename)
-        if file_hash is not None:
-            file_hash = ".%s" % file_hash
-        hashed_name = os.path.join(path, "%s%s%s" % (root, file_hash, ext))
-        unparsed_name = list(parsed_name)
-        unparsed_name[2] = hashed_name
-        # Special casing for a @font-face hack, like url(myfont.eot?#iefix")
-        # http://www.fontspring.com/blog/the-new-bulletproof-font-face-syntax
-        if '?#' in name and not unparsed_name[3]:
-            unparsed_name[2] += '?'
-        return urlunsplit(unparsed_name)
+    def get_files_to_upload(self):
+        files = set(self.hashed_files.values())
+        if app_settings.UPLOAD_UNHASHED_STATIC_FILES:
+            files.update(self.hashed_files.keys())
+        return files
 
     def post_process(self, paths, dry_run=False, **options):
-        original_exists = self.exists
-        self.exists = lambda name: False  # temporarily overwritten to prevent any exist check
-        for response in super(HashCloudinaryMixin, self).post_process(paths, dry_run, **options):
-            yield response
-        self.exists = original_exists
-
-    def read_manifest(self):
-        try:
-            with self.manifest_storage.open(self.manifest_name) as manifest:
-                return manifest.read().decode('utf-8')
-        except IOError:
-            return None
-
-    def add_unix_path_keys_to_paths(self, paths):
-        for path in paths.copy():
-            if '\\' in path:
-                clean_path = self.clean_name(path)
-                paths[clean_path] = paths[path]
-
-    def save_manifest(self):
-        payload = {'paths': self.hashed_files, 'version': self.manifest_version}
-        if os.name == 'nt':
-            paths = payload['paths']
-            self.add_unix_path_keys_to_paths(paths)
-        if self.manifest_storage.exists(self.manifest_name):
-            self.manifest_storage.delete(self.manifest_name)
-        contents = json.dumps(payload).encode('utf-8')
-        self.manifest_storage._save(self.manifest_name, ContentFile(contents))
-
-    # we only need 1 method of HashedFilesMixin, so we just copy it as function objects to avoid MRO complexities
-    stored_name = HashedFilesMixin.stored_name
-
-
-class StaticHashedCloudinaryStorage(HashCloudinaryMixin, ManifestFilesMixin, StaticCloudinaryStorage):
-    pass
+        yield from super().post_process(paths, dry_run=dry_run, **options)
+        if not dry_run:
+            self.upload_to_cloudinary(self.get_files_to_upload())

@@ -15,6 +15,6 @@ def cloudinary_static(context, image, options_dict={}, **options):
     except KeyError:
         pass
     if not isinstance(image, CloudinaryResource):
-        image = staticfiles_storage.stored_name(image)
+        image = staticfiles_storage._prepend_prefix(staticfiles_storage.stored_name(image))
         image = CloudinaryResource(image)
     return mark_safe(image.image(**options))

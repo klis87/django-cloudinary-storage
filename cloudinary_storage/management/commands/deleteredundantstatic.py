@@ -1,3 +1,5 @@
+import cloudinary.uploader
+from django.contrib.staticfiles.storage import staticfiles_storage
 from django.core.management import CommandError
 
 from cloudinary_storage import app_settings
@@ -7,28 +9,17 @@ from . import deleteorphanedmedia
 
 class Command(deleteorphanedmedia.Command):
     help = 'Removes redundant static files'
-    storage = StaticHashedCloudinaryStorage()
     TAG = app_settings.STATIC_TAG
 
-    def add_arguments(self, parser):
-        super(Command, self).add_arguments(parser)
-        parser.add_argument('--keep-unhashed-files', action='store_true', dest='keep_unhashed_files',
-                            help='Keeps used unhashed files untouched. '
-                                 'Without it all unhashed files will be always deleted.'
-                                 'Use only when you run collectstatic with --upload-unhashed-files option.')
-
-    def set_options(self, **options):
-        super(Command, self).set_options(**options)
-        self.keep_unhashed_files = options['keep_unhashed_files']
+    @property
+    def storage(self):
+        return staticfiles_storage
 
     def get_resource_types(self):
         """
         Overwritten as static files can be of any resource type.
         """
         return set(RESOURCE_TYPES.values())
-
-    def get_file_storage(self, resource_type):
-        return self.storage
 
     def get_exclude_paths(self):
         return ()
@@ -38,18 +29,24 @@ class Command(deleteorphanedmedia.Command):
         Returns currently used static files.
         Assumes that manifest staticfiles.json is up-to-date.
         """
-        manifest = self.storage.load_manifest()
-        if self.keep_unhashed_files:
-            needful_files = set(manifest.keys() | manifest.values())
-            needful_files = {self.storage.clean_name(file) for file in needful_files}
-        else:
-            needful_files = set(manifest.values())
-        return {self.process_file(file) for file in needful_files}
+        paths, _ = self.storage.load_manifest()
+        needful_files = set(paths.values())
+        if app_settings.UPLOAD_UNHASHED_STATIC_FILES:
+            needful_files.update(paths.keys())
+        return {self.storage._get_public_id(file) for file in needful_files}
 
-    def process_file(self, file):
-        return self.storage._remove_extension_for_non_raw_file(self.storage._prepend_prefix(file))
+    def delete_orphaned_files(self, files):
+        """
+        Overwritten as static storage keeps files locally, they are deleted directly from Cloudinary.
+        """
+        for resource_type, files_per_type in files.items():
+            for file in files_per_type:
+                cloudinary.uploader.destroy(file, invalidate=True, resource_type=resource_type)
+                self.stdout.write('Deleted {}.'.format(file))
 
     def handle(self, *args, **options):
+        if not isinstance(self.storage, StaticHashedCloudinaryStorage):
+            raise CommandError('Command requires StaticHashedCloudinaryStorage as staticfiles storage.')
         if self.storage.read_manifest() is None:
             raise CommandError('Command requires staticfiles.json. Run collectstatic command first and try again.')
         super(Command, self).handle(*args, **options)
